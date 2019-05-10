@@ -23,7 +23,7 @@ var my_print = console.log;
     const checkIfInitialized = function() {
         if (isInitialized === false) {
           return Promise.all(my_modules.map(m => {
-              return fetch("../fstar/signal-wasm/" + m + ".wasm")
+              return fetch(m + ".wasm")
             })).then(responses =>
               Promise.all(responses.map(r => r.arrayBuffer()))
             ).then(bufs => {

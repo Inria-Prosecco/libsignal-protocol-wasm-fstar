@@ -18,3 +18,4 @@ update-demo:
 	cp -f fstar/signal-wasm/*.wasm public/
 	cp -f fstar/signal-wasm/loader.js public/
 	cp -f fstar/signal-wasm/shell.js public/
+	sed -i 's|fetch("../fstar/signal-wasm/" + m + ".wasm")|fetch(m + ".wasm")|' public/SignalCoreWasm.js
