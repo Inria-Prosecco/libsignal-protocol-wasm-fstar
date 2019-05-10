@@ -339,6 +339,8 @@ var my_print = console.log;
       if (args.length != proto.args.length) {
         throw Error("wrong number of arguments to call the FStar function !")
       }
+      let memory = new Uint32Array(SignalStar.Kremlin.mem.buffer);
+      let sp = memory[0];
       let args_pointers = args.map((arg,i) => {
         let protoArg = proto.args[i];
         if (protoArg.type === "buffer") {
@@ -392,6 +394,7 @@ var my_print = console.log;
         (new Uint8Array(retBuf)).set(read_memory(pointer.value, size))
         return retBuf;
       });
+      memory[0] = sp;
       if (proto.return.length === 1) {
         if (proto.return[0].type === "bool") {
           return call_return === 1;
@@ -561,10 +564,8 @@ var my_print = console.log;
     }
 
     async function SignalCoreSHA512(data) {
-      return crypto.subtle.digest({name: 'SHA-512'}, data);
-      // Returns index out of bonds ?
-      // await checkIfInitialized();
-      // return callWithProto(FStarSHA512, [data]);
+      await checkIfInitialized();
+      return callWithProto(FStarSHA512, [data]);
     }
 
     async function SignalCoreHKDF(input, salt, info) {
@@ -600,9 +601,9 @@ var my_print = console.log;
       return callWithProto(FStarECDHE, [privKey, correctPubKey]);
     }
     async function SignalCoreEd25519Verify(pubKey, msg, sig) {
-        // return callWithProto(FStarEd25519Verify, [sig, pubKey, msg]);
+        return callWithProto(FStarEd25519Verify, [sig, pubKey, msg]);
         // Timeout ?
-        return Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
+        // return Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
     }
 
     Internal.FStar = {
