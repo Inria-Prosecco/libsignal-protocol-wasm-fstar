@@ -1,0 +1,317 @@
+(* set expandIfTermsToTerms = false.  *)
+
+free io:channel.
+type privkey.
+type pubkey.
+const ZeroPriv:privkey.
+const ZeroPub:pubkey.
+type key.
+fun b2k(bitstring):key[data].
+fun k2b(key):bitstring[data].
+fun pk2b(pubkey):bitstring[data].
+
+const G:pubkey.
+fun dh(privkey,pubkey) : pubkey.
+equation forall x:privkey,y:privkey;
+	 dh(x,dh(y,G)) = 
+	 dh(y,dh(x,G)).
+
+type keypair.
+fun pair(privkey,pubkey) : keypair [data].
+
+fun sign(privkey,bitstring) : bitstring.
+reduc forall sk:privkey,x:bitstring;
+      verify(dh(sk,G),x,sign(sk,x)) = true.
+
+fun enc(key,key,bitstring): bitstring.
+reduc forall k:key,iv:key,x:bitstring;
+      dec(k,iv,enc(k,iv,x)) = x.
+      
+fun hmac(key,bitstring):bitstring.
+fun hkdf0(bitstring,bitstring,bitstring):key.
+fun hkdf1(bitstring,bitstring,bitstring):key.
+fun hkdf2(bitstring,bitstring,bitstring):key.
+
+letfun hkdf3(x:bitstring,y:bitstring,z:bitstring) =
+       let k1 = hkdf0(x,y,z) in
+       let k2 = hkdf1(x,y,z) in
+       let k3 = hkdf2(x,y,z) in
+       (k1,k2,k3).
+      
+letfun pk(s:privkey) = dh(s,G).
+letfun keygen() = 
+       new s:privkey;
+       pair(s,pk(s)).
+
+(*
+const tag_signed_key:bitstring.
+const tag_init_ephemeral_key:bitstring.
+const tag_resp_ephemeral_key:bitstring.
+const tag_sending_ephemeral_key:bitstring.
+fun dh_s(pubkey,bitstring):privkey[private].
+letfun keygen(pkA:pubkey,tag:bitstring) =
+       pair(dh_s(pkA,tag),pk(dh_s(pkA,tag))).
+*)
+
+table identityKeys(pubkey,privkey).
+table onetimePreKeys(pubkey,privkey,pubkey).
+table signedPreKeys(pubkey,privkey,pubkey,bitstring).
+
+type session.
+(* Session Format:
+   our_signed_pub_key,
+   their_signed_pub_key,
+   our_sending_ephemeral_priv_key,
+   their_sending_ephemeral_pub_key
+   root_key,
+   version
+*)
+fun Session(pubkey,pubkey,privkey,pubkey,pubkey,key,bitstring):session [data].
+type chain.
+(* Chain Format:
+   SendingChain(our_sending_ephemeral_pub_key,chain_key, prev_counter, counter, message_key)
+   ReceivingChain(their_sending_ephemeral_pub_key,chain_key, prev_counter, counter, message_key)
+*)
+fun SendingChain(pubkey,key,bitstring,bitstring,key):chain [data].
+fun ReceivingChain(pubkey,key,bitstring,bitstring,key):chain [data].
+
+table sessions(pubkey,pubkey,session).
+table chains(pubkey,pubkey,chain).
+
+fun msg(pubkey,pubkey,bitstring):bitstring [private].
+
+const FF:bitstring.
+const ZZ:bitstring.
+const Zero:bitstring.
+const One:bitstring.
+const Two:bitstring.
+const FiftyOne:bitstring.
+const label_WhisperText:bitstring.
+const label_WhisperRatchet:bitstring.
+const label_WhisperMessageKeys:bitstring.
+fun concat(bitstring,bitstring):bitstring [data].
+(* WhisperMessage format: ephemeral_key, prec_counter, counter, ciphertext *)
+fun WhisperMessage(pubkey,bitstring,bitstring,bitstring): bitstring [data].
+(* PreKeyWhisperMessage format: registration_id, our_identity_key, our_signed_key, their_signed_key, their_ephemeral_key, defined_their_ephemeral_key, whisper_msg *)
+fun PreKeyWhisperMessage(bitstring,pubkey,pubkey,pubkey,pubkey,bool,bitstring): bitstring [data].
+
+letfun x3dh_i(
+       our_identity_priv_key: privkey,
+       our_signed_priv_key: privkey,
+       their_identity_pub_key: pubkey,
+       their_signed_pub_key: pubkey,
+       their_ephemeral_pub_key: pubkey,
+       defined_their_ephemeral_pub_key: bool) =
+	  let dh1 = dh(our_identity_priv_key,their_signed_pub_key) in
+	  let dh2 = dh(our_signed_priv_key,their_identity_pub_key) in
+	  let dh3 = dh(our_signed_priv_key,their_signed_pub_key) in
+	  let shared_secret =
+	      	concat(concat(concat(FF,pk2b(dh1)),pk2b(dh2)),pk2b(dh3)) in
+	  if defined_their_ephemeral_pub_key = true then
+	     let dh4 = dh(our_signed_priv_key,their_ephemeral_pub_key) in
+	     concat(shared_secret,pk2b(dh4))
+	  else shared_secret.
+
+letfun advance_chain(c:chain,ctr':bitstring) =
+       let SendingChain(sepk,chain_key,pctr,ctr,msg_key) = c in (
+         let msg_key' = hmac(chain_key,Zero) in
+         let chain_key' = hmac(chain_key,One) in
+         let c' = SendingChain(sepk,b2k(chain_key'),ctr,ctr',b2k(msg_key')) in
+         c')
+       else 
+       let ReceivingChain(sepk,chain_key,pctr,ctr,msg_key) = c in (
+         let msg_key' = hmac(chain_key,Zero) in
+         let chain_key' = hmac(chain_key,One) in
+         let c' = ReceivingChain(sepk,b2k(chain_key'),ctr,ctr',b2k(msg_key')) in
+         c').
+
+letfun x3dh_r(
+       our_identity_priv_key: privkey,
+       our_signed_priv_key: privkey,
+       our_ephemeral_priv_key: privkey,
+       defined_our_ephemeral_priv_key: bool,
+       their_identity_pub_key: pubkey,
+       their_signed_pub_key: pubkey) = 
+       	  let dh1 = dh(our_signed_priv_key,their_identity_pub_key) in
+	  let dh2 = dh(our_identity_priv_key,their_signed_pub_key) in
+	  let dh3 = dh(our_signed_priv_key,their_signed_pub_key) in
+	  let shared_secret =
+	      	concat(concat(concat(FF,pk2b(dh1)),pk2b(dh2)),pk2b(dh3)) in
+	  if defined_our_ephemeral_priv_key = true then
+	     let dh4 = dh(our_ephemeral_priv_key,their_signed_pub_key) in
+	     concat(shared_secret,pk2b(dh4))
+	  else shared_secret.
+
+letfun encrypt(our_identity_pub_key:pubkey,
+	       their_identity_pub_key:pubkey,
+	       plaintext:bitstring,c:chain) =
+       let SendingChain(sepk,ck,pctr,ctr,msg_key) = c in
+       let enc_key = hkdf0(k2b(msg_key),ZZ,label_WhisperMessageKeys) in
+       let enc_iv  = hkdf1(k2b(msg_key),ZZ,label_WhisperMessageKeys) in
+       let mac_key = hkdf2(k2b(msg_key),ZZ,label_WhisperMessageKeys) in
+       let ciphertext = enc(enc_key,enc_iv,plaintext) in
+       let whisper_msg = WhisperMessage(sepk,pctr,ctr,ciphertext) in
+       let mac_input = concat(concat(concat(pk2b(their_identity_pub_key),pk2b(our_identity_pub_key)),FiftyOne),whisper_msg) in
+       let mac = hmac(mac_key,mac_input) in
+       concat(concat(FiftyOne,whisper_msg),mac).
+
+
+letfun decrypt(our_identity_pub_key:pubkey,
+	       their_identity_pub_key:pubkey,
+    	       msg:bitstring,c:chain) =
+       let ReceivingChain(sepk,ck,pctr,ctr,msg_key) = c in
+       let concat(concat(=FiftyOne,whisper_msg),mac) = msg in
+       let WhisperMessage(=sepk,=pctr,=ctr,ciphertext) = whisper_msg in
+       let enc_key = hkdf0(k2b(msg_key),ZZ,label_WhisperMessageKeys) in
+       let enc_iv  = hkdf1(k2b(msg_key),ZZ,label_WhisperMessageKeys) in
+       let mac_key = hkdf2(k2b(msg_key),ZZ,label_WhisperMessageKeys) in
+       let mac_input = concat(concat(concat(pk2b(our_identity_pub_key),pk2b(their_identity_pub_key)),FiftyOne),whisper_msg) in
+       let exp_mac = hmac(mac_key,mac_input) in
+       if mac = exp_mac then
+          let plaintext = dec(enc_key,enc_iv,ciphertext) in
+ 	  plaintext.
+
+
+event Send0(pubkey,pubkey,bitstring).
+event Recv0(pubkey,pubkey,bitstring).
+event Send(pubkey,pubkey,bitstring).
+event Recv(pubkey,pubkey,bitstring).
+event SenderSession(pubkey,pubkey,key,key).
+event ReceiverSession(pubkey,pubkey,key,key).
+event SenderChain(pubkey,pubkey,pubkey,key).
+event ReceiverChain(pubkey,pubkey,pubkey,key).
+
+let Device = 
+    get identityKeys(pkA,skA) in
+    let our_identity_priv_key = skA in
+    let our_identity_pub_key = pkA in
+    
+    (!let pair(sskA,sekA) = keygen() in
+      let sig = sign(skA,pk2b(sekA)) in
+      insert signedPreKeys(pkA,sskA,sekA,sig);
+      out (io,(sekA,sig)))
+  | (!let pair(oskA,okA) = keygen() in
+      insert onetimePreKeys(pkA,oskA,okA);
+      out (io,okA))
+
+  |(!in (io,(their_sending_ephemeral_pub_key:pubkey,pctr:bitstring,ctr:bitstring,cmsg:bitstring));
+       get sessions(=our_identity_pub_key,their_identity_pub_key,s) in
+          let Session(our_signed_pub_key,
+		      their_signed_pub_key,
+		      our_sending_ephemeral_priv_key,
+		      our_sending_ephemeral_pub_key,
+		      their_old_ephemeral_pub_key,
+		      root_key,v) = s in
+          let shared_secret = dh(our_sending_ephemeral_priv_key,their_sending_ephemeral_pub_key) in
+          let (root_key':key,chain_key:key,www:key) =
+	      hkdf3(pk2b(shared_secret),k2b(root_key),label_WhisperRatchet) in
+          let msg_key0 = b2k(hmac(chain_key,Zero)) in
+          let chain_key1 = b2k(hmac(chain_key,One)) in
+          let s' = Session(our_signed_pub_key,
+	       	       their_signed_pub_key,
+		       our_sending_ephemeral_priv_key,
+		       our_sending_ephemeral_pub_key,
+		       their_sending_ephemeral_pub_key,
+		       root_key',v) in
+          let rc = ReceivingChain(their_sending_ephemeral_pub_key,chain_key1,pctr,ctr,msg_key0) in
+          let plaintext = decrypt(our_identity_pub_key,their_identity_pub_key,cmsg,rc) in
+	  event Recv(our_identity_pub_key,their_identity_pub_key,plaintext);
+	  event ReceiverSession(our_identity_pub_key,their_identity_pub_key,root_key',chain_key1)
+	  )
+
+  | (! in (io,(pctr:bitstring,ctr:bitstring));
+       let pair(our_sending_ephemeral_priv_key,our_sending_ephemeral_pub_key) = keygen() in
+       get sessions(=our_identity_pub_key,their_identity_pub_key,s) in
+       let Session(our_signed_pub_key,
+		      their_signed_pub_key,
+		      our_old_sending_ephemeral_priv_key,
+		      our_old_sending_ephemeral_pub_key,
+		      their_sending_ephemeral_pub_key,
+		      root_key,v) = s in
+		      
+       let shared_secret = dh(our_sending_ephemeral_priv_key,
+                              their_sending_ephemeral_pub_key) in
+       let (root_key':key,chain_key:key,www:key) =
+           hkdf3(pk2b(shared_secret),k2b(root_key),label_WhisperRatchet) in
+       let msg_key0 = b2k(hmac(chain_key,Zero)) in
+       let chain_key1 = b2k(hmac(chain_key,One)) in
+       let s' = Session(our_signed_pub_key,
+        	      their_signed_pub_key,
+		      our_sending_ephemeral_priv_key,
+		      our_sending_ephemeral_pub_key,
+		      their_sending_ephemeral_pub_key,
+		      root_key',v) in  
+       let sc = SendingChain(our_sending_ephemeral_pub_key,chain_key1,pctr,ctr,msg_key0) in
+       let plaintext = msg(our_identity_pub_key,their_identity_pub_key,One) in
+       let cmsg = encrypt(our_identity_pub_key,their_identity_pub_key,plaintext,sc) in
+     
+       event Send(our_identity_pub_key,their_identity_pub_key,plaintext);
+       event SenderSession(our_identity_pub_key,their_identity_pub_key,root_key',chain_key1);
+       out (io,(our_sending_ephemeral_pub_key,cmsg))
+     )
+
+  |(!  in (io,(their_sending_ephemeral_pub_key:pubkey,cmsg:bitstring,nctr:bitstring));
+       get chains(=our_identity_pub_key,their_identity_pub_key,rc) in
+       let ReceivingChain(=their_sending_ephemeral_pub_key,
+   		             chain_key, pctr, ctr, msg_key) = rc in 
+       let plaintext = decrypt(our_identity_pub_key,their_identity_pub_key,cmsg,rc) in
+       let msg_key' = b2k(hmac(chain_key,Zero)) in
+       let chain_key' = b2k(hmac(chain_key,One)) in
+       let rc = ReceivingChain(their_sending_ephemeral_pub_key,chain_key',ctr,nctr,msg_key') in
+       event Recv(our_identity_pub_key,their_identity_pub_key,plaintext);
+       event ReceiverChain(our_identity_pub_key,their_identity_pub_key,their_sending_ephemeral_pub_key,chain_key')
+    )
+
+  | (! in (io,(nctr:bitstring));
+       get chains(=our_identity_pub_key,their_identity_pub_key,sc) in
+       let SendingChain(our_sending_ephemeral_pub_key,
+ 		           chain_key, pctr, ctr, msg_key) = sc in 
+       let plaintext = msg(our_identity_pub_key,their_identity_pub_key,One) in
+       let cmsg = encrypt(our_identity_pub_key,their_identity_pub_key,plaintext,sc) in
+       let msg_key' = b2k(hmac(chain_key,Zero)) in
+       let chain_key' = b2k(hmac(chain_key,One)) in
+       let sc = SendingChain(our_sending_ephemeral_pub_key,chain_key',ctr,nctr,msg_key') in
+       event Send(our_identity_pub_key,their_identity_pub_key,plaintext);   
+       event SenderChain(our_identity_pub_key,their_identity_pub_key,our_sending_ephemeral_pub_key,chain_key');
+       out (io,(our_sending_ephemeral_pub_key,cmsg))
+     )
+.
+
+query pA:pubkey,pB:pubkey,plain:bitstring;
+      event(Send(pA,pB,plain));
+      event(Recv(pA,pB,plain));
+      event(Recv(pA,pB,plain)) ==> event(Send(pB,pA,plain)).
+
+query pA:pubkey,pB:pubkey,rk:key, ck:key;
+      event(SenderSession(pA,pB,rk,ck));
+      event(ReceiverSession(pA,pB,rk,ck));
+      event(ReceiverSession(pA,pB,rk,ck)) ==>
+      event(SenderSession(pB,pA,rk,ck)).
+
+query pA:pubkey,pB:pubkey, ek:pubkey, ck:key;
+      event(SenderChain(pA,pB,ek,ck));
+      event(ReceiverChain(pA,pB,ek,ck));
+      event(ReceiverChain(pA,pB,ek,ck)) ==>
+      event(SenderChain(pB,pA,ek,ck)).
+
+process
+	(! new sk:privkey; let p = pk(sk) in insert identityKeys(p,sk); out(io,p))
+	| (! get identityKeys(pkA,skA) in
+	     get identityKeys(pkB,skB) in
+	     if (pkA <> pkB) then (
+    	     new apk:pubkey; new bpk:pubkey;
+	     let pair(aesk,aepk) = keygen() in
+	     let pair(besk,bepk) = keygen() in
+	     new rk:key;
+	     insert sessions(pkA,pkB,Session(apk,bpk,aesk,aepk,bepk,rk,Zero));
+	     insert sessions(pkB,pkA,Session(bpk,apk,besk,bepk,aepk,rk,Zero))))
+	| (! in (io,(pctr:bitstring,ctr:bitstring));
+	     get identityKeys(pkA,skA) in
+	     get identityKeys(pkB,skB) in
+	     if (pkA <> pkB) then (
+	     let pair(aesk,aepk) = keygen() in
+	     new ck:key; new mk:key; 
+	     insert chains(pkA,pkB,SendingChain(aepk,ck,pctr,ctr,mk));
+	     insert chains(pkB,pkA,ReceivingChain(aepk,ck,pctr,ctr,mk))))
+	| !Device
+

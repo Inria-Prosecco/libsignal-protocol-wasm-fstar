@@ -191,6 +191,20 @@ To compile curve25519 from C souce files in `/native`, install
 grunt compile
 ```
 
+## Signal*
+
+To switch between an all-Javascript implementation of Signal an implementation
+using WebAssembly compiled from F*, use:
+
+    make vanilla
+
+and
+
+    make fstar
+
+To update the `demo` website with the sources from the `src` and `fstar` directory,
+use `make update-demo`.
+
 ## License
 
 Copyright 2015-2018 Open Whisper Systems

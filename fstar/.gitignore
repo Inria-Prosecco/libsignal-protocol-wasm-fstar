@@ -1,0 +1,17 @@
+*.lax
+.hints/
+.depend/
+.output/
+*.checked
+
+signal-wasm/
+signal-c/
+signal-ml/
+signal.exe
+.depend
+main.o
+main.cmi
+main.cmx
+main.ml
+test-spec.exe
+*~

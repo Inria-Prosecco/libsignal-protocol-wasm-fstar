@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signal*</title>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" href="mocha.css" />
+  <style type="text/css">
+    #signal-star h1 {
+      font-size: 2em,
+    }
+
+    #signal-star a {
+      text-decoration: none
+    }
+  </style>
+</head>
+<body>
+    <div style="margin-top:2em; margin-left:3em; margin-right:3em;">
+      <img style="margin-right:5em" src="logo-inria-institutionnel-couleur_large.jpg" alt="Inria" height="100">
+      <img style="margin-right:5em" src="logo-MS-Research-Inria-Joint-Centre.png" alt="Inria" height="100">
+      <img style="margin-right:5em" src="Microsoft_Research_logo.jpg" alt="Inria" height="100">
+    </div>
+
+    <div id="mocha">
+      <div id="signal-star">
+        <h1 style="font-size:3em">Signal*, a verified cryptographic protocol</h1>
+        <p>
+            <a href="https://signal.org/">Signal</a> is a secure messaging application
+            that relies on a special cryptographic protocol for exchanging messages
+            between participants. The Signal web application runs inside the browser
+            using the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">
+            Web Crypto API</a> and <a href="http://kripken.github.io/emscripten-site/">
+            Emscripten</a>-generated Javascript code for encryption.
+        </p>
+        <p>
+            In order to make the Signal web application more secure, the
+            <a href="http://prosecco.gforge.inria.fr/">Prosecco</a>
+            research team at <a href="https://inria.fr">Inria</a> and the
+            <a href="https://www.microsoft.com/en-us/research/group/research-software-engineering-rise/">
+            RiSE</a> group at Microsoft Reseatch propose a reimplementation
+            of the core protocol, called Signal*, using <a href="https://webassembly.org/">WebAssembly</a>. WebAssembly is
+            a portable execution environment supported by all major browsers and Web application
+            frameworks. It is designed to be an alternative to but interoperable with JavaScript.
+            WebAssembly defines a compact, portable instruction set for a stack-based machine.
+            These features make WebAssembly a better language in which to implement the cryptographic
+            primitives that lack from the Web Crypto API, such as <a href="https://en.wikipedia.org/wiki/Curve25519">
+            elliptic curve cryptography</a>.
+        </p>
+        <p>
+            The WebAssembly used in this demo is generated from <a href="https://www.fstar-lang.org/">
+            F*</a> sources using the <a href="https://github.com/FStarLang/kremlin">
+            KreMLin compiler</a>. The F* implementation, contains the cryptographic
+            top-level functions of the Signal protocol like <code>encrypt</code> or
+            <code>respond</code>. F* is a verification framework, that we use to
+            prove three properties about this Signal protocol implementation:
+            <ul style="list-style:initial">
+                <li style="margin-left:1.5em">memory safety;</li>
+                <li style="margin-left:1.5em">secret independance (absence of some timing attacks);</li>
+                <li style="margin-left:1.5em">functional correctness, compared to a concise functional specification.</li>
+            </ul>
+        </p>
+
+        <p>
+            This details of the verification of the Signal
+            protocol is described in <a href="https://www.computer.org/csdl/proceedings-article/sp/2019/666000b002/19skg8v5fZS">
+            an article accepted at IEEE S&amp;P 2019</a>. The F* code is then compiled into WebAssembly using a
+            custom, small and auditable toolchain that allows for higher assurance about
+            the generated code, at the expense of some performance losses compared
+            to <a href="https://emscripten.org/">Emscripten</a>-generated WebAssembly.
+            You can find the F* and Javascript sources for this modified version of
+            the Signal protocol on <a href="">GitHub</a>.
+        </p>
+        <p>
+            What you can see below is Signal* running in your browser and passing some of the
+            tests from the Signal protocol test suite. This proof of concept shows that Signal*
+            can be made to interoperate with actual Signal-based web applications like
+            <a href="https://www.whatsapp.com/">Whatsapp</a> or <a href="https://signal.org/fr/">Signal</a>.
+        </p>
+      <hr>
+      </div>
+    </div>
+    <div id="tests"></div>
+  </div>
+
+  <script type="text/javascript" src="test.js"></script>
+
+
+  <script type="text/javascript" src="curve25519_concat.js"></script>
+  <script type="text/javascript" src="components_concat.js"></script>
+
+  <script type="text/javascript" src="curve25519_wrapper.js"></script>
+  <script type="text/javascript" src="curve25519_worker_manager.js"></script>
+  <script type="text/javascript" src="curve25519_worker.js"></script>
+  <script type="text/javascript" src="components_concat.js"></script>
+  <script type="text/javascript" src="temp_helpers.js"></script>
+
+  <script type="text/javascript" src="SessionCore.js" data-cover-never></script>
+
+  <script type="text/javascript" src="shell.js" data-cover-never></script>
+  <script type="text/javascript" src="loader.js" data-cover-never></script>
+  <script type="text/javascript" src="SignalCoreWasm.js" data-cover-never></script>
+  <script type="text/javascript" src="Curve.js" data-cover-never></script>
+  <script type="text/javascript" src="crypto.js" data-cover-never></script>
+  <script type="text/javascript" src="helpers.js" data-cover-never></script>
+  <script type="text/javascript" src="KeyHelper.js" data-cover-never></script>
+  <script type="text/javascript" src="SignalProtocolAddress.js" data-cover-never></script>
+  <script type="text/javascript" src="SessionBuilder.js" data-cover-never></script>
+  <script type="text/javascript" src="SessionCipher.js" data-cover-never></script>
+  <script type="text/javascript" src="protobufs_concat.js" data-cover-never></script>
+  <script type="text/javascript" src="SessionRecord.js" data-cover-never></script>
+  <script type="text/javascript" src="SessionLock.js" data-cover-never></script>
+  <script type="text/javascript" src="NumericFingerprint.js" data-cover-never></script>
+
+  <script type="text/javascript" src="InMemorySignalProtocolStore.js"></script>
+  <script type="text/javascript" src="testvectors.js"></script>
+  <script type="text/javascript" src="crypto_test.js"></script>
+  <script type="text/javascript" src="SessionCipherTest.js"></script>
+  <script type="text/javascript" src="KeyHelperTest.js"></script>
+  <!-- The wasm version of SHA512 is not yet working in isolation -->
+  <!--<script type="text/javascript" src="NumericFingerprintTest.js"></script>-->
+
+  <script type="text/javascript" src="SessionBuilderTest.js"></script>
+
+  <script type="text/javascript" src="IdentityKeyStore_test.js"></script>
+  <script type="text/javascript" src="PreKeyStore_test.js"></script>
+  <script type="text/javascript" src="SignedPreKeyStore_test.js"></script>
+  <script type="text/javascript" src="SessionStore_test.js"></script>
+  <script type="text/javascript" src="SignalProtocolStore_test.js"></script>
+
+  <script type="text/javascript" src="SignalProtocolAddressTest.js"></script>
+
+</body>
+</html>

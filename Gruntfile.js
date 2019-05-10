@@ -18,6 +18,7 @@ module.exports = function(grunt) {
       curve25519: {
         src: [
           'build/curve25519_compiled.js',
+          'build/curve25519_compiled.wasm',
           'src/curve25519_wrapper.js',
         ],
         dest: 'build/curve25519_concat.js'
@@ -66,6 +67,8 @@ module.exports = function(grunt) {
           'src/curve25519_worker_manager.js',
           'build/components_concat.js',
 
+          'src/SessionCore.js',
+          'src/SignalCore.js',
           'src/Curve.js',
           'src/crypto.js',
           'src/helpers.js',
