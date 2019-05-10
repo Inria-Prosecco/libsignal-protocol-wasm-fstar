@@ -14,7 +14,7 @@ fstar:
 		 > test/index.html
 
 update-demo:
-	cp -f src/*.js demo/
-	cp -f fstar/signal-wasm/*.wasm demo/
-	cp -f fstar/signal-wasm/loader.js demo/
-	cp -f fstar/signal-wasm/shell.js demo/
+	cp -f src/*.js public/
+	cp -f fstar/signal-wasm/*.wasm public/
+	cp -f fstar/signal-wasm/loader.js public/
+	cp -f fstar/signal-wasm/shell.js public/
