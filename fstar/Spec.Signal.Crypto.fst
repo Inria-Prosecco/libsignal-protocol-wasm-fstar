@@ -120,8 +120,14 @@ let sign sk plain =
 val verify: pk:pubkey -> plain:bytes{8 * length plain < max_size_t} -> sv:sigval -> bool
 let verify pk plain sv =
   let raw_pk = sub pk 1 32 in
-  (* CAREFUL: this is wrong, signal uses a modified version of Ed25519 *)
-  Spec.Ed25519.verify raw_pk plain sv
+  let x = (nat_from_bytes_le raw_pk) % Spec.Curve25519.prime in
+  let xm1 = Spec.Curve25519.fsub Spec.Curve25519.one x in
+  let xp1 = Spec.Curve25519.fadd Spec.Curve25519.one x in
+  let xinv = Spec.Curve25519.fpow x (pow2 255 - 21) in
+  let ed_y = Spec.Curve25519.fmul xm1 xinv in
+  let ed_pub = nat_to_bytes_le #SEC 32 ed_y in
+  let ed_pub = upd #uint8 #32 ed_pub 31 (index #uint8 #32 ed_pub 31 |. (index sv 63 &. u8 0x80)) in
+  Spec.Ed25519.verify ed_pub plain sv
 
 assume type entropy
 

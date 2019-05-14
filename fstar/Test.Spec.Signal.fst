@@ -1052,7 +1052,6 @@ let test () =
     IO.print_string "\nCould not decipher : Failed !\n"; false
   end in
 
-  (* This test is not run because we don't have a spec version of Signal's modification of Ed25519
   IO.print_string "\n\nTEST 7: (Spec.Signal.Core.verify)\n";
   let t7_result = Spec.Signal.Core.verify_sig
       t7_input_identityPubKey
@@ -1064,7 +1063,6 @@ let test () =
    end else begin
      IO.print_string "\nFailed !\n"; false
    end end in
-  *)
 
   IO.print_string "\n\nTEST 8: (Spec.Signal.Core.sign)\n";
   let t8_computed_signature = Spec.Signal.Core.sign
@@ -1078,7 +1076,7 @@ let test () =
   //
   if
     result0a && result0b && result1a && result1b && result2 && result3 &&
-    result4 && result5 && result6 (*&&  result7 && result8 *)
+    result4 && result5 && result6 &&  result7 && result8
   then
     IO.print_string "\n\nComposite Result: Success !\n"
   else
