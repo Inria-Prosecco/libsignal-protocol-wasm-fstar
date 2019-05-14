@@ -571,10 +571,8 @@ var my_print = console.log;
     }
 
     async function SignalCoreSHA512(data) {
-        return crypto.subtle.digest({name: 'SHA-512'}, data);
-        // Returns index out of bonds ?
-        // await checkIfInitialized();
-        // return callWithProto(FStarSHA512, [data]);
+        await checkIfInitialized();
+        return callWithProto(FStarSHA512, [data]);
     }
 
     async function SignalCoreHKDF(input, salt, info) {
@@ -614,11 +612,6 @@ var my_print = console.log;
     async function SignalCoreEd25519Verify(pubKey, msg, sig) {
         await checkIfInitialized();
         return callWithProto(FStarEd25519Verify, [sig, pubKey, msg]);
-        // Timeout ?
-        // logBuf("DEBUG:pubKey", pubKey);
-        // logBuf("DEBUG:msg", msg);
-        // logBuf("DEBUG:sig", sig);
-        // return Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
     }
 
     Internal.FStar = {

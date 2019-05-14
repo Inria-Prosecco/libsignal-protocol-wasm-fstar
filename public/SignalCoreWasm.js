@@ -5,6 +5,13 @@ var my_print = console.log;
     var isInitialized = false
     var SignalStar = {}
 
+    const toHexString = bytes =>
+    bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+
+    const logNumber = (msg,num) => console.log(msg,num);
+
+    const logBuf = (msg, buf) => console.log(msg, buf.byteLength, toHexString(new Uint8Array(buf)));
+
     // This object is passed at the wasm instantiation to link the missing
     // `random_bytes` function, needed for generating new keyPairs.
     var my_imports = {
@@ -341,7 +348,7 @@ var my_print = console.log;
       }
       let memory = new Uint32Array(SignalStar.Kremlin.mem.buffer);
       let sp = memory[0];
-      let args_pointers = args.map((arg,i) => {
+      let args_pointers = args.flatMap((arg,i) => {
         let protoArg = proto.args[i];
         if (protoArg.type === "buffer") {
           let argByteBuffer = new Uint8Array(arg);
@@ -362,10 +369,10 @@ var my_print = console.log;
           return [{ "value": arg, "index": i }];
         }
         throw Error("Unimplemented !");
-      }).flat();
+      });
       let return_pointers = proto.return.filter(ret => {
         return ret.type == "buffer" || ret.type == "varbuf"
-      }).map((ret, i) => {
+    }).flatMap((ret, i) => {
         let byteBuffer = new Uint8Array(new ArrayBuffer(ret.size));
         let pointer = malloc_array(byteBuffer);
         if (ret.type == "varbuf") {
@@ -376,7 +383,7 @@ var my_print = console.log;
         } else {
           return [{ "value": pointer, "index": i }];
         }
-      }).flat();
+      });
       let call_return = SignalStar[proto.module][proto.name](
         ...return_pointers.concat(args_pointers).map(x => { return x.value; })
       );
@@ -564,8 +571,8 @@ var my_print = console.log;
     }
 
     async function SignalCoreSHA512(data) {
-      await checkIfInitialized();
-      return callWithProto(FStarSHA512, [data]);
+        await checkIfInitialized();
+        return callWithProto(FStarSHA512, [data]);
     }
 
     async function SignalCoreHKDF(input, salt, info) {
@@ -581,6 +588,7 @@ var my_print = console.log;
     }
 
     async function SignalCoreEd25519Sign(privKey, message) {
+      await checkIfInitialized();
       return callWithProto(FStarEd25519Sign, [privKey, message]);
     }
 
@@ -597,13 +605,13 @@ var my_print = console.log;
     }
 
     async function SignalCoreECDHE(pubKey, privKey) {
+      await checkIfInitialized();
       let correctPubKey = validatePubKey(pubKey);
       return callWithProto(FStarECDHE, [privKey, correctPubKey]);
     }
     async function SignalCoreEd25519Verify(pubKey, msg, sig) {
+        await checkIfInitialized();
         return callWithProto(FStarEd25519Verify, [sig, pubKey, msg]);
-        // Timeout ?
-        // return Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
     }
 
     Internal.FStar = {
