@@ -355,7 +355,7 @@ let main () =
     t0_output_rootKey t0_computed_rootKey (size 32);
   TestLib.compare_and_print (C.String.of_literal "0b. chainKey")
     t0_output_chainKey t0_computed_chainKey (size 32);
-  C.String.print (C.String.of_literal "\n\nTEST 1: (Spec.Signal.Core.initiate)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 1: (Impl.Signal.Core.initiate)\n");
   let t1_computed_rootKey = create (size 32) (u8 0) in
   let t1_computed_chainKey = create (size 32) (u8 0) in
   Impl.Signal.Core.initiate
@@ -373,7 +373,7 @@ let main () =
   TestLib.compare_and_print (C.String.of_literal "1b. chainKey")
     t1_output_chainKey t1_computed_chainKey (size 32);
 
-  C.String.print (C.String.of_literal "\n\nTEST 2: (Spec.Signal.Core.respond)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 2: (Impl.Signal.Core.respond)\n");
   let t2_computed_rootKey = create (size 32) (u8 0) in
   Impl.Signal.Core.respond
     t2_computed_rootKey
@@ -386,7 +386,7 @@ let main () =
   TestLib.compare_and_print (C.String.of_literal "2. rootKey")
     t2_output_rootKey t2_computed_rootKey (size 32);
 
-   C.String.print (C.String.of_literal "\n\nTEST 3: (Spec.Signal.Core.encrypt)\n");
+   C.String.print (C.String.of_literal "\n\nTEST 3: (Impl.Signal.Core.encrypt)\n");
    let t3_computed_result = create (size 241) (u8 0) in
    let t3_computed_chainKey = create (size 32) (u8 0) in
    let size_encrypt = Impl.Signal.Core.encrypt
@@ -406,7 +406,7 @@ let main () =
   TestLib.compare_and_print (C.String.of_literal "3. Ciphertext")
     t3_output_result t3_computed_result size_encrypt;
 
-  C.String.print (C.String.of_literal "\n\nTEST 4: (Spec.Signal.Core.encrypt)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 4: (Impl.Signal.Core.encrypt)\n");
   let t4_computed_result = create (size 241) (u8 0) in
   let t4_computed_chainKey = create (size 32) (u8 0) in
   let size_encrypt = Impl.Signal.Core.encrypt
@@ -427,7 +427,7 @@ let main () =
     t4_output_result t4_computed_result size_encrypt;
 
 
-  C.String.print (C.String.of_literal "\n\nTEST 5: (Spec.Signal.Core.decrypt)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 5: (Impl.Signal.Core.decrypt)\n");
   let t5_computed_result = create (size 241) (u8 0) in
   let plain_len = Impl.Signal.Core.decrypt
     #(Ghost.hide 241)
@@ -448,7 +448,7 @@ let main () =
   TestLib.compare_and_print (C.String.of_literal "5. plaintext")
     t5_output_plaintext t5_computed_result plain_len;
 
-  C.String.print (C.String.of_literal "\n\nTEST 6: (Spec.Signal.Core.decrypt)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 6: (Impl.Signal.Core.decrypt)\n");
   let t6_computed_result = create (size 241) (u8 0) in
   let plain_len = Impl.Signal.Core.decrypt
     #(Ghost.hide 241)
@@ -468,7 +468,7 @@ let main () =
   TestLib.compare_and_print (C.String.of_literal "6. plaintext")
     t6_output_plaintext t6_computed_result (size 64);
 
-  C.String.print (C.String.of_literal "\n\nTEST 7: (Spec.Signal.Core.verify_sig)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 7: (Impl.Signal.Core.verify_sig)\n");
   let t7_computed_result = Impl.Signal.Core.verify_sig
     t7_input_identityPubKey
     t7_input_signedPubKey
@@ -480,7 +480,7 @@ let main () =
    C.String.print (C.String.of_literal "Failure !\n")
   end;
 
-  C.String.print (C.String.of_literal "\n\nTEST 8: (Spec.Signal.Core.sign)\n");
+  C.String.print (C.String.of_literal "\n\nTEST 8: (Impl.Signal.Core.sign)\n");
   let t8_computed_signature = create (size 64) (u8 0) in
   Impl.Signal.Core.sign
     t8_computed_signature

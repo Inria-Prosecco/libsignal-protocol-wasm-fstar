@@ -1066,14 +1066,12 @@ let test () =
    end end in
   *)
 
-  (* This test is not run because we don't have a spec version of Signal's modification of Ed25519
   IO.print_string "\n\nTEST 8: (Spec.Signal.Core.sign)\n";
   let t8_computed_signature = Spec.Signal.Core.sign
       t8_input_privKey
       t8_input_pubKey
    in
   let result8 = test_compare_buffers "8. signature" t8_output_signature t8_computed_signature in
-  *)
 
   //
   // RESULT

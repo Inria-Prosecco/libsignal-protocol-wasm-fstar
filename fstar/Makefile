@@ -7,11 +7,7 @@ OUT_DIR_WASM = signal-wasm
 
 .PHONY: all test stage1 stage2 clean clean-c distclean
 
-all:
-	rm -f .depend && $(MAKE) .depend
-	$(MAKE) all_
-
-all_: compile-c compile-wasm
+all: compile-c compile-wasm
 
 compile-c: $(GENERATED_DIR)/Makefile.include
 	$(MAKE) -C $(GENERATED_DIR) -f Makefile.basic

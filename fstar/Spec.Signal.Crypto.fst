@@ -103,8 +103,19 @@ let hmac mk plain =
 
 val sign: sk:privkey -> plain:bytes{8 * length plain < max_size_t} -> sv:sigval
 let sign sk plain =
-  (* CAREFUL: this is wrong, signal uses a modified version of Ed25519 *)
-  Spec.Ed25519.sign sk plain
+  let len = length plain in
+  let ed_key = concat #uint8 #32 #32 sk 
+    (Spec.Ed25519.point_compress (Spec.Ed25519.point_mul sk Spec.Ed25519.g)) in
+  let sign_bit = index ed_key 63 &. u8 0x80 in
+  let sk = sub ed_key 0 32 in
+  let pk = sub ed_key 32 32 in
+  let r = Spec.Ed25519.sha512_modq (32 + len) (concat #uint8 #32 #len sk plain) in
+  let r' = Spec.Ed25519.point_mul (nat_to_bytes_le 32 r) Spec.Ed25519.g in
+  let rs = Spec.Ed25519.point_compress r' in
+  let h = Spec.Ed25519.sha512_modq (64 + len) (concat #uint8 #64 #len (concat #uint8 #32 #32 rs pk) plain) in
+  let s = (r + (h * nat_from_bytes_le sk) % Spec.Ed25519.q) % Spec.Ed25519.q in
+  let sig = concat #uint8 #32 #32 rs (nat_to_bytes_le 32 s) in
+  upd sig 63 (index sig 63 |. sign_bit)
 
 val verify: pk:pubkey -> plain:bytes{8 * length plain < max_size_t} -> sv:sigval -> bool
 let verify pk plain sv =
