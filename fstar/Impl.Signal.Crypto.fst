@@ -40,6 +40,9 @@ val secure_compare:
 
 let secure_compare #vlen len input0 input1 =
  let res = Lib.ByteBuffer.lbytes_eq #len input0 input1 in
+ // This could be fixed by i) adding an interface to that file, then ii)
+ // friend'ing Lib.ByteSequence in order to reveal the definition of lbytes_eq,
+ // then prove this.
  admit();
  res
 
@@ -117,6 +120,8 @@ let hkdf1 #vlen #vilen output len input salt ilen info =
   push_frame ();
   let tmp = create (size 32) (u8 0) in
   admit();
+  // Type mismatch: info is immutable but HKDF wants a mutable buffer. This will
+  // be fixed once we convert all of HACL* to the new LowStar.ConstBuffer.
   Hacl.HKDF_SHA2_256.hkdf_extract tmp salt (size 32) input len;
   Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 32);
   pop_frame ()
@@ -142,6 +147,7 @@ let hkdf2 #vilen output input salt ilen info =
   push_frame ();
   let tmp = create (size 32) (u8 0) in
   admit();
+  // Same as above.
   Hacl.HKDF_SHA2_256.hkdf_extract tmp salt (size 32) input (size 32);
   Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 64);
   pop_frame ()
@@ -166,6 +172,7 @@ val hkdf3:
 let hkdf3 #vilen output input salt ilen info =
   push_frame ();
   let tmp = create (size 32) (u8 0) in
+  // Same as above.
   admit();
   Hacl.HKDF_SHA2_256.hkdf_extract tmp salt (size 32) input (size 32);
   Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 96);
@@ -189,6 +196,8 @@ val hkdf_standalone:
 let hkdf_standalone #vlen #vilen output len input slen salt ilen info =
   push_frame ();
   let tmp = create (size 32) (u8 0) in
+  // Missing functional correctness for HKDF. This will be fixed once _dev
+  // abandons its unproven HKDF in favor of the one on the fstar-master branch.
   admit();
   Hacl.HKDF_SHA2_256.hkdf_extract tmp salt slen input len;
   Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 96);
@@ -219,6 +228,7 @@ val enc:
 let enc #vlen len ciphertext key iv plaintext =
   assert((Ghost.reveal vlen / 16) * 16 + 16 <= max_size_t);
   let _ = Hacl.Impl.AES_256_CBC.aes256_cbc_encrypt ciphertext key iv plaintext len in
+  // Missing functional specification for AES256.
   admit()
 
 val enc_standalone:
@@ -246,6 +256,7 @@ val enc_standalone:
 let enc_standalone #vplen clen ciphertext key iv plen plaintext =
   assert((Ghost.reveal vplen / 16) * 16 + 16 <= max_size_t);
   let real_clen = Hacl.Impl.AES_256_CBC.aes256_cbc_encrypt ciphertext key iv plaintext plen in
+  // Same as above.
   admit();
   real_clen
 
@@ -283,6 +294,7 @@ let dec #vlen len plaintext key iv ciphertext =
   let res =
     Hacl.Impl.AES_256_CBC.aes256_cbc_decrypt plaintext key iv ciphertext len
   in
+  // Same as above.
   admit();
   res
 
@@ -336,8 +348,10 @@ val hmac:
 	))
 
 let hmac #vdlen mac key dlen data =
- admit();
- Hacl.HMAC.compute_sha2_256 mac key (size 32) data dlen
+  // Type mismatch: data is immutable but HMAC wants a mutable buffer. This will
+  // be fixed once we convert all of HACL* to the new LowStar.ConstBuffer.
+  admit();
+  Hacl.HMAC.compute_sha2_256 mac key (size 32) data dlen
 
 val hmac_standalone:
     #vdlen: Ghost.erased size_nat
