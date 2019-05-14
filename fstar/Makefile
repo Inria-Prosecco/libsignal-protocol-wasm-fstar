@@ -87,7 +87,7 @@ KREMLIN=$(KREMLIN_HOME)/krml
 
 # 2. Generation of .c files
 
-$(GENERATED_DIR_WASM)/Makefile.include: EXTRA+=-wasm -d backtraces -d wasm
+$(GENERATED_DIR_WASM)/Makefile.include: EXTRA+=-wasm -d backtraces -d wasm -d calls
 $(GENERATED_DIR)/Makefile.include: EXTRA+=-fparentheses
 
 # We use -drop (deprecated) only to avoid creating unnecessary .c,.h files
