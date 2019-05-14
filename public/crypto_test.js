@@ -127,23 +127,22 @@ describe("Crypto", async function() {
                 }).then(done).catch(done);
             });
         });
-        // The wasm function of this function is not yet working in isolation 
-        // describe("Ed25519Verify", function() {
-        //     it("throws on bad signature", function(done) {
-        //         var badsig = sig.slice(0);
-        //         new Uint8Array(badsig).set([0], 0);
-        //
-        //         Internal.crypto.Ed25519Verify(pub, msg, badsig).catch(function(e) {
-        //             if (e.message === 'Invalid signature') {
-        //             done();
-        //             } else { throw e; }
-        //         }).catch(done);
-        //     });
-        //
-        //     it("does not throw on good signature", function(done) {
-        //         return Internal.crypto.Ed25519Verify(pub, msg, sig).then(done).catch(done);
-        //     });
-        // });
+        describe("Ed25519Verify", function() {
+            it("throws on bad signature", function(done) {
+                var badsig = sig.slice(0);
+                new Uint8Array(badsig).set([0], 0);
+
+                Internal.crypto.Ed25519Verify(pub, msg, badsig).catch(function(e) {
+                    if (e.message === 'Invalid signature') {
+                    done();
+                    } else { throw e; }
+                }).catch(done);
+            });
+
+            it("does not throw on good signature", function(done) {
+                return Internal.crypto.Ed25519Verify(pub, msg, sig).then(done).catch(done);
+            });
+        });
     }
 
     describe('curve25519', function() {
