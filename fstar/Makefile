@@ -13,14 +13,14 @@ compile-c: $(GENERATED_DIR)/Makefile.include
 	$(MAKE) -C $(GENERATED_DIR) -f Makefile.basic
 compile-c: EXTRA+=-o libsignal.a
 
-test-c: $(GENERATED_DIR)/Makefile.include
+test-c: $(GENERATED_DIR)/Makefile.include | $(GENERATED_DIR)
 	$(MAKE) -C $(GENERATED_DIR) -f Makefile.basic Test_Impl_Signal.exe
 	signal-c/Test_Impl_Signal.exe
 test-c: EXTRA+=-o Test_Impl_Signal.exe -fbuiltin-uint128 -fnocompound-literals -fc89-scope \
 	-fparentheses -fcurly-braces -funroll-loops 8 -warn-error +9 -add-include '"kremlib.h"' \
 	-add-include '"TestLib.h"' -add-include '"C_String.h"'
 
-test-wasm: $(GENERATED_DIR_WASM)/Makefile.include
+test-wasm: $(GENERATED_DIR_WASM)/Makefile.include  | $(GENERATED_DIR_WASM)
 	cd $(GENERATED_DIR_WASM) && node main.js
 
 
@@ -78,6 +78,12 @@ $(OUTPUT_DIR)/%.krml: | .depend
 	  --extract_module $(basename $(notdir $(subst .checked,,$<))) \
 	  $(notdir $(subst .checked,,$<)) && \
 	touch $@
+
+$(GENERATED_DIR):
+	mkdir -p $@
+
+$(GENERATED_DIR_WASM):
+	mkdir -p $@
 
 KREMLIN=$(KREMLIN_HOME)/krml
 

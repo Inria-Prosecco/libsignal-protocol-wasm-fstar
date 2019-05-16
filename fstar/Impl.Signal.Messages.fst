@@ -73,6 +73,38 @@ inline_for_extraction noextract val equal_bytes:
 inline_for_extraction noextract let equal_bytes #vlen len input0 input1 =
   secure_compare #vlen len input0 input1
 
+val serialize_size_get_length: s:size_t -> Tot (l:size_t{v l == Spec.Signal.Messages.serialize_size_get_length (v s)})
+let serialize_size_get_length s =
+  let size128 : size_t = size 128 in
+  let size16384 : size_t = size 16384 in
+  let size2097152 : size_t = size 2097152 in
+  let size268435456 : size_t = size 268435456 in
+  if s <. size128 then size 1 else
+  if s <. size16384 then size 2 else
+  if s <. size2097152 then size 3 else
+  if s <. size268435456 then size 4
+  else size 5
+
+let serialize_bytes_get_length (b:size_t{v b + 6 <= max_size_t}) : Tot (l:size_t{v l == Spec.Signal.Messages.serialize_bytes_get_length (v b)}) =
+  1ul +! serialize_size_get_length b +! b
+
+#push-options "--z3rlimit 100"
+
+let serialize_whisper_message_get_length
+  (prev_counter:size_t)
+  (counter:size_t)
+  (ciphertext_len:size_t{v ciphertext_len + Spec.Signal.Messages.size_whisper_message_extra_info <= max_size_t})
+  : Tot (r:size_t{v r == Spec.Signal.Messages.serialize_whisper_message_get_length (v prev_counter) (v counter) (v ciphertext_len) })
+  =
+  serialize_bytes_get_length (size Spec.Signal.Crypto.size_pubkey) +!
+  1ul +! serialize_size_get_length counter +!
+  1ul +! serialize_size_get_length prev_counter +!
+  serialize_bytes_get_length ciphertext_len
+
+#pop-options
+
+
+
 val serialize_size: s:size_t -> b:lbuffer uint8 (size 5) ->
   Stack (r:size_t{v r <= 5})
   (requires (fun h -> live h b))

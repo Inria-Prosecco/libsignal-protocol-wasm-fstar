@@ -603,6 +603,17 @@ noextract val encrypt_spec:
       output == expected_output
     ))
 
+#push-options "--z3rlimit 500"
+
+let encrypt_get_length
+    (prev_counter:size_t)
+    (counter:size_t)
+    (plen:size_t{v plen + 16 <= max_size_t /\ Spec.Signal.Crypto.cipherlen (v plen) + 140 + 64 <= max_size_t})
+    : Tot (r:size_t{v r == Spec.Signal.Core.encrypt_get_length (v prev_counter) (v counter) (v plen)}) =
+    1ul +. (serialize_whisper_message_get_length prev_counter counter (cipherlen plen)) +. 8ul
+
+#pop-options
+
 noextract let encrypt_spec #plen our_identity_pub_key their_identity_pub_key msg_key our_ephemeral_pub_key
   prev_counter counter plaintext =
   let (ciphertext, mac_key) =
