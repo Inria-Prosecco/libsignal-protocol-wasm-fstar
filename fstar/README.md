@@ -1,5 +1,7 @@
 # Signal*
 
+© Copyright Inria, 2018-2019
+
 This folder contains the F\* implementation of the Signal protocol. It is meant to be used with F\* on branch `master`, and HACL* on branch `_dev`.
 
 ## Usage
