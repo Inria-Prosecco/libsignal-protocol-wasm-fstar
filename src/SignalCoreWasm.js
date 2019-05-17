@@ -611,7 +611,10 @@ var my_print = console.log;
     }
     async function SignalCoreEd25519Verify(pubKey, msg, sig) {
         await checkIfInitialized();
-        return callWithProto(FStarEd25519Verify, [sig, pubKey, msg]);
+        let res = callWithProto(FStarEd25519Verify, [sig, pubKey, msg]);
+	if (res !== true) {
+          throw new Error("Invalid signature");
+        }
     }
 
     Internal.FStar = {

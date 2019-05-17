@@ -19,13 +19,12 @@
       logBuf("verify:input:identityPublicKey", identityKey);
       logBuf("verify:input:signedPublicKey", signedPublicKey);
       logBuf("verify:input:signature", signature);
-      let res = await Internal.crypto.Ed25519Verify(
+      await Internal.crypto.Ed25519Verify(
         identityKey,
         signedPublicKey,
         signature
       );
       console.log("verify:============ Ending dump of verify ===========");
-      return res;
     }
 
     async function SignalCoreSign(privKey, pubKey) {
@@ -290,7 +289,7 @@
       return Internal.Curve.async.ECDHE(pubKey, privKey);
     }
     async function SignalCoreEd25519Verify(pubKey, msg, sig) {
-        return Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
+      return await Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
     }
 
     Internal.FStar = {
