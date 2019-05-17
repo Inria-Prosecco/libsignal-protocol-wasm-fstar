@@ -55,10 +55,7 @@ var Internal = Internal || {};
             return await Internal.FStar.SignalCoreEd25519Sign(privKey, message);
         },
         Ed25519Verify: async function(pubKey, msg, sig) {
-            let is_ok = await Internal.FStar.SignalCoreEd25519Verify(pubKey, msg, sig);
-            if (!is_ok) {
-              throw new Error("Invalid signature");
-            }
+            return await Internal.FStar.SignalCoreEd25519Verify(pubKey, msg, sig);
         }
     };
 

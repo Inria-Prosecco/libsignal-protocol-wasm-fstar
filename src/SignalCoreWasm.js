@@ -5,13 +5,6 @@ var my_print = console.log;
     var isInitialized = false
     var SignalStar = {}
 
-    const toHexString = bytes =>
-    bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-
-    const logNumber = (msg,num) => console.log(msg,num);
-
-    const logBuf = (msg, buf) => console.log(msg, buf.byteLength, toHexString(new Uint8Array(buf)));
-
     // This object is passed at the wasm instantiation to link the missing
     // `random_bytes` function, needed for generating new keyPairs.
     var my_imports = {

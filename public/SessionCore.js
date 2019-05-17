@@ -3,13 +3,6 @@
     var chainStore = []
     var sessionStore = []
 
-    const toHexString = bytes =>
-    bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-
-    const logNumber = (msg,num) => console.log(msg,num);
-
-    const logBuf = (msg, buf) => console.log(msg, buf.byteLength, toHexString(new Uint8Array(buf)));
-
     async function CoreInitSessionInitiator(
       session,
       deviceSignedPreKeyPub,
@@ -45,18 +38,10 @@
         },
         id: session.id
       }
-      console.log("initiate:============ Beginning dump of initiate ===========");
-      logBuf("initiate:input:ourIdentityPrivKey", ourIdentityKeyPair.privKey);
-      logBuf("initiate:input:basePrivKey", baseKey.privKey);
-      logBuf("initiate:input:ourOneTimePrivKey", ourSendingEphemeralKey.privKey);
-      logBuf("initiate:input:theirIdentityPubKey", sessionStore[session.id].indexInfo.remoteIdentityKey);
-      logBuf("initiate:input:theirSignedPubKey", sessionStore[session.id].currentRatchet.lastRemoteEphemeralKey);
       var devicePreKeyArg;
       if (devicePreKey !== undefined) {
-        logBuf("initiate:input:theirOneTimePubKey", devicePreKey);
         devicePreKeyArg = devicePreKey;
       } else {
-        console.log("initiate:input:NO PREKEY!!!");
         devicePreKeyArg = new ArrayBuffer(33);
       }
       session.currentRatchet.ephemeralKeyPair = ourSendingEphemeralKey
@@ -75,9 +60,6 @@
       chainStore[session.id][util.toString(ourSendingEphemeralKey.pubKey)].chainKey.key = newChainKey
       sessionStore[session.id].currentRatchet.ephemeralKeyPair = ourSendingEphemeralKey;
       session.pendingPreKey.baseKey = baseKey.pubKey;
-      logBuf("initiate:output:rootKey", sessionStore[session.id].currentRatchet.rootKey);
-      logBuf("initiate:output:chainKey", chainStore[session.id][util.toString(ourSendingEphemeralKey.pubKey)].chainKey.key)
-      console.log("initiate:============ Ending dump of initiate ===========");
     }
 
     async function CoreInitSessionResponder(
@@ -126,16 +108,6 @@
       } else {
         ourEphemeralKeyArg = new ArrayBuffer(32);
       }
-      console.log("respond:============ Beginning dump of respond ===========");
-      logBuf("respond:input:ourIdentityPrivKey", ourIdentityKey.privKey);
-      logBuf("respond:input:ourSignedPriveKey", ourSignedKey.privKey);
-      if (ourEphemeralKeyArg !== undefined) {
-        logBuf("respond:input:ourEphemeralPrivKey", ourEphemeralKeyArg);
-      } else {
-        console.log("respond:input:NO EPHEMERAL PRIVATE KEY!!!");
-      }
-      logBuf("respond:input:theirIdentityPubKey", theirIdentityPubKey);
-      logBuf("respond:input:theirOneTimePubKey", theirEphemeralPubKey);
       var newRootKey = await Internal.FStar.SignalCoreRespond(
           ourIdentityKey.privKey,
           ourSignedKey.privKey,
@@ -145,8 +117,6 @@
           theirEphemeralPubKey
       );
       sessionStore[session.id].currentRatchet.rootKey = newRootKey;
-      logBuf("respond:output:rootKey", sessionStore[session.id].currentRatchet.rootKey);
-      console.log("respond:============ Ending dump of respond ===========");
 
       return session;
     }
@@ -186,16 +156,6 @@
       if (chain.chainType === Internal.ChainType.RECEIVING) {
         throw new Error("Tried to encrypt on a receiving chain");
       }
-      console.log("encrypt:============ Beginning dump of encrypt ===========");
-      logBuf("encrypt:input:ourIdentityPubKey", ourIdentityKey.pubKey);
-      logBuf("encrypt:input:theirIdentityPubKey", sessionStore[session.id].indexInfo.remoteIdentityKey);
-      logBuf("encrypt:input:messageKey", chain.messageKeys[chain.chainKey.counter]);
-      logBuf("encrypt:input:ourEphemeralPubKey", util.toArrayBuffer(
-        sessionStore[session.id].currentRatchet.ephemeralKeyPair.pubKey
-      ));
-      console.log("encrypt:input:previousCounter", sessionStore[session.id].currentRatchet.previousCounter);
-      console.log("encrypt:input:counter", chain.chainKey.counter);
-      logBuf("encrypt:input:msg", buffer);
       var result = await Internal.FStar.SignalCoreEncrypt(
         util.toArrayBuffer(ourIdentityKey.pubKey),
         util.toArrayBuffer(sessionStore[session.id].indexInfo.remoteIdentityKey),
@@ -207,9 +167,6 @@
         chain.chainKey.counter,
         buffer,
       );
-      logBuf("encrypt:output:result", result);
-      logBuf("encrypt:output:chainKey", chain.chainKey.key);
-      console.log("encrypt:============ Ending dump of encrypt ===========");
       delete chain.messageKeys[chain.chainKey.counter];
       return result;
     }
@@ -287,15 +244,6 @@
         throw e;
       }
       delete chain.messageKeys[message.counter];
-      console.log("decrypt:============ Beginning dump of decrypt ===========");
-      logBuf("decrypt:input:ourIdentityPubKey", ourIdentityKey.pubKey);
-      logBuf("decrypt:input:theirIdentityPubKey", sessionStore[session.id].indexInfo.remoteIdentityKey);
-      logBuf("decrypt:input:remoteEphemeralKey", remoteEphemeralKey);
-      logBuf("decrypt:input:messageKey", messageKey);
-      console.log("decrypt:input:counter",  message.counter);
-      console.log("decrypt:input:previousCounter",  message.previousCounter);
-      logBuf("decrypt:input:ciphertext", message.ciphertext.toArrayBuffer());
-      logBuf("decrypt:input:macTag", mac);
       var plaintext = await Internal.FStar.SignalCoreDecrypt(
         util.toArrayBuffer(ourIdentityKey.pubKey),
         util.toArrayBuffer(sessionStore[session.id].indexInfo.remoteIdentityKey),
@@ -306,8 +254,6 @@
         message.ciphertext.toArrayBuffer(),
         mac,
       );
-      logBuf("decrypt:output:plaintext", plaintext);
-      console.log("decrypt:============ Ending dump of decrypt ===========");
       delete session.pendingPreKey;
       return plaintext;
     }

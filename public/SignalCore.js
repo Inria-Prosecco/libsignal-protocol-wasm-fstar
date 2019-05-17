@@ -6,35 +6,17 @@
         return res();
       })
     };
-
-    const toHexString = bytes =>
-    bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-
-    const logNumber = (msg,num) => console.log(msg,num);
-
-    const logBuf = (msg, buf) => console.log(msg, buf.byteLength, toHexString(new Uint8Array(buf)));
-
+    
     async function SignalCoreVerifySig(identityKey,signedPublicKey,signature) {
-      console.log("verify:============ Beginning dump of verify ===========");
-      logBuf("verify:input:identityPublicKey", identityKey);
-      logBuf("verify:input:signedPublicKey", signedPublicKey);
-      logBuf("verify:input:signature", signature);
-      let res = await Internal.crypto.Ed25519Verify(
+      await Internal.crypto.Ed25519Verify(
         identityKey,
         signedPublicKey,
         signature
       );
-      console.log("verify:============ Ending dump of verify ===========");
-      return res;
     }
 
     async function SignalCoreSign(privKey, pubKey) {
-      console.log("sign:============ Beginning dump of sign ===========");
-      logBuf("sign:input:privKey", privKey);
-      logBuf("sign:input:publicKey", pubKey);
       let signature = await Internal.crypto.Ed25519Sign(privKey, pubKey);
-      logBuf("sign:input:signature", signature);
-      console.log("sign:============ Ending dump of sign ===========");
       return signature;
     }
 
@@ -290,7 +272,7 @@
       return Internal.Curve.async.ECDHE(pubKey, privKey);
     }
     async function SignalCoreEd25519Verify(pubKey, msg, sig) {
-        return Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
+      return await Internal.Curve.async.Ed25519Verify(pubKey, msg, sig);
     }
 
     Internal.FStar = {

@@ -6,34 +6,17 @@
         return res();
       })
     };
-
-    const toHexString = bytes =>
-    bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-
-    const logNumber = (msg,num) => console.log(msg,num);
-
-    const logBuf = (msg, buf) => console.log(msg, buf.byteLength, toHexString(new Uint8Array(buf)));
-
+    
     async function SignalCoreVerifySig(identityKey,signedPublicKey,signature) {
-      console.log("verify:============ Beginning dump of verify ===========");
-      logBuf("verify:input:identityPublicKey", identityKey);
-      logBuf("verify:input:signedPublicKey", signedPublicKey);
-      logBuf("verify:input:signature", signature);
       await Internal.crypto.Ed25519Verify(
         identityKey,
         signedPublicKey,
         signature
       );
-      console.log("verify:============ Ending dump of verify ===========");
     }
 
     async function SignalCoreSign(privKey, pubKey) {
-      console.log("sign:============ Beginning dump of sign ===========");
-      logBuf("sign:input:privKey", privKey);
-      logBuf("sign:input:publicKey", pubKey);
       let signature = await Internal.crypto.Ed25519Sign(privKey, pubKey);
-      logBuf("sign:input:signature", signature);
-      console.log("sign:============ Ending dump of sign ===========");
       return signature;
     }
 
