@@ -6,7 +6,7 @@
   "dependencies": {
     "long": "^3.1.0",
     "bytebuffer": "^3.5.5",
-    "protobufjs": "5.0.1"
+    "protobufjs": "5.0.3"
   },
   "devDependencies": {
     "blanket": "1.1.7",
@@ -21,7 +21,7 @@
     "grunt-jscs": "^1.1.0",
     "grunt-preen": "^1.0.0",
     "grunt-saucelabs": "^8.3.3",
-    "jquery": "^2.2.3",
+    "jquery": "^3.4.0",
     "mocha": "^2.4.5"
   },
   "scripts": {
