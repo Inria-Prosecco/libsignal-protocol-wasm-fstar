@@ -2,7 +2,7 @@
 
 © Copyright Inria, 2018-2019
 
-This folder contains the F\* implementation of the Signal protocol. It is meant to be used with F\* on branch `master`, and HACL* on branch `_dev`.
+This folder contains the F\* implementation of the Signal protocol. It is meant to be used with [F\*](https://github.com/FStarLang/FStar) on branch `master`, [Kremlin](https://github.com/FStarLang/kremlin) on branch `master` and [HACL*](https://github.com/project-everest/hacl-star) on branch `_dev`. For installation instructions, please refer to the `README`s of these repositories.
 
 ## Usage
 
@@ -14,7 +14,7 @@ To extract to OCaml and test the Signal* spec:
 
     make test-spec.exe
 
-To extract to C in the `signal-c` folder:
+To extract to C in the `signal-c` folder (untested for now):
 
     make compile-c
 

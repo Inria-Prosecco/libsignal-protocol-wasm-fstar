@@ -1,200 +1,35 @@
-# libsignal-protocol-javascript
+# Signal*
 
-[![Build Status](https://travis-ci.org/signalapp/libsignal-protocol-javascript.svg?branch=master)](https://travis-ci.org/signalapp/libsignal-protocol-javascript)
+The original `README` for Signal is `README.LIBSIGNAL.md`; this `README` describes the Signal* fork.
+
+## Presentation
+
+[Signal](https://signal.org/) is a secure messaging application that relies on a special cryptographic protocol for exchanging messages between participants. The Signal web application runs inside the browser using the [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API) and [Emscripten](http://kripken.github.io/emscripten-site/)-generated Javascript code for encryption.
 
 
-Signal Protocol implementation for the browser based on
-[libsignal-protocol-java](https://github.com/signalapp/libsignal-protocol-java).
+In order to make the Signal web application more secure, the [Prosecco](https://prosecco.gforge.inria.fr/) research team at [Inria](https://inria.fr), in collaboration with [Microsoft Research](https://www.microsoft.com/en-us/research) through [Project Everest](https://project-everest.github.io/), developed a reimplementation of the core protocol, called Signal*, using [WebAssembly](https://webassembly.org/). WebAssembly is a portable execution environment supported by all major browsers and Web application frameworks. It is designed to be an alternative to but interoperable with JavaScript. WebAssembly defines a compact, portable instruction set for a stack-based machine. These features make WebAssembly a better language in which to implement the cryptographic primitives that lack from the Web Crypto API, such as [elliptic curve cryptography](https://en.wikipedia.org/wiki/Curve25519).
 
-```
-/dist       # Distributables
-/build      # Intermediate build files
-/src        # JS source files
-/native     # C source files for curve25519
-/protos     # Protobuf definitions
-/test       # Tests
-```
+The WebAssembly used in this demo is generated from [F\*](https://www.fstar-lang.org/) sources using the [KreMLin compiler](https://github.com/FStarLang/kremlin). The F\* implementation, contains the cryptographic top-level functions of the Signal protocol like `encrypt` or `respond`. F\* is a verification framework, that we use to prove three properties about this Signal protocol implementation:
+* memory safety;
+* secret independence (absence of some timing attacks);
+* functional correctness, compared to a concise functional specification.
 
-## Overview
-A ratcheting forward secrecy protocol that works in synchronous and
-asynchronous messaging environments.
+## IEEE2019 Paper
 
-### PreKeys
+This details of the verification of the Signal protocol is described in [an article accepted at IEEE S&amp;P 2019](https://www.computer.org/csdl/proceedings-article/sp/2019/666000b002/19skg8v5fZS). The F\* code is then compiled into WebAssembly using a custom, small and auditable toolchain that allows for higher assurance about the generated code, at the expense of some performance losses compared to [Emscripten](https://emscripten.org/)-generated WebAssembly.
 
-This protocol uses a concept called 'PreKeys'. A PreKey is an ECPublicKey and
-an associated unique ID which are stored together by a server. PreKeys can also
-be signed.
+## Diff with `lisignal-protocol-javascript`
 
-At install time, clients generate a single signed PreKey, as well as a large
-list of unsigned PreKeys, and transmit all of them to the server.
+We forked [the official implementation of Signal in Javascript](https://github.com/signalapp/libsignal-protocol-javascript). The main modifications to the implementation concern the files `src/SessionBuilder.js` and `src/SessionCipher.js`. We carved out from those files a core module of cryptographic constructions, called `src/SessionCore.js` in our implementation.
 
-### Sessions
+`src/SessionCore.js` then calls the WebAssembly functions generated from F\*. These functions are accessible through a wrapper called `src/SignalCoreWasm.js`. `src/SignalCore.js` is a alternative Javascript implementation of what is inside the F\*-generated WebAssembly code.
 
-Signal Protocol is session-oriented. Clients establish a "session," which is
-then used for all subsequent encrypt/decrypt operations. There is no need to
-ever tear down a session once one has been established.
+We also modified `crypto.js` to divert calls to `Curve25519` and other cryptographic primitives to use our F\*-generated WebAssembly code.
 
-Sessions are established in one of two ways:
+## Switching Signal flavors
 
-1. PreKeyBundles. A client that wishes to send a message to a recipient can
-   establish a session by retrieving a PreKeyBundle for that recipient from the
-   server.
-1. PreKeySignalMessages. A client can receive a PreKeySignalMessage from a
-   recipient and use it to establish a session.
-
-### State
-
-An established session encapsulates a lot of state between two clients. That
-state is maintained in durable records which need to be kept for the life of
-the session.
-
-State is kept in the following places:
-
-* Identity State. Clients will need to maintain the state of their own identity
-  key pair, as well as identity keys received from other clients.
-* PreKey State. Clients will need to maintain the state of their generated
-  PreKeys.
-* Signed PreKey States. Clients will need to maintain the state of their signed
-  PreKeys.
-* Session State. Clients will need to maintain the state of the sessions they
-  have established.
-
-## Requirements
-
-This implementation currently depends on the presence of the following
-types/interfaces, which are available in most modern browsers.
-
-* [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer)
-* [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray)
-* [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
-* [WebCrypto](https://developer.mozilla.org/en-US/docs/Web/API/Crypto) with support for:
-  - AES-CBC
-  - HMAC SHA-256
-
-## Usage
-
-Include `dist/libsignal-protocol.js` in your webpage.
-
-### Install time
-
-At install time, a libsignal client needs to generate its identity keys,
-registration id, and prekeys.
-
-```js
-var KeyHelper = libsignal.KeyHelper;
-
-var registrationId = KeyHelper.generateRegistrationId();
-// Store registrationId somewhere durable and safe.
-
-KeyHelper.generateIdentityKeyPair().then(function(identityKeyPair) {
-    // keyPair -> { pubKey: ArrayBuffer, privKey: ArrayBuffer }
-    // Store identityKeyPair somewhere durable and safe.
-});
-
-KeyHelper.generatePreKey(keyId).then(function(preKey) {
-    store.storePreKey(preKey.keyId, preKey.keyPair);
-});
-
-KeyHelper.generateSignedPreKey(identityKeyPair, keyId).then(function(signedPreKey) {
-    store.storeSignedPreKey(signedPreKey.keyId, signedPreKey.keyPair);
-});
-
-// Register preKeys and signedPreKey with the server
-```
-
-### Building a session
-
-A libsignal client needs to implement a storage interface that will manage
-loading and storing of identity, prekeys, signed prekeys, and session state.
-See `test/InMemorySignalProtocolStore.js` for an example.
-
-Once this is implemented, building a session is fairly straightforward:
-
-```js
-var store   = new MySignalProtocolStore();
-var address = new libsignal.SignalProtocolAddress(recipientId, deviceId);
-
-// Instantiate a SessionBuilder for a remote recipientId + deviceId tuple.
-var sessionBuilder = new libsignal.SessionBuilder(store, address);
-
-// Process a prekey fetched from the server. Returns a promise that resolves
-// once a session is created and saved in the store, or rejects if the
-// identityKey differs from a previously seen identity for this address.
-var promise = sessionBuilder.processPreKey({
-    registrationId: <Number>,
-    identityKey: <ArrayBuffer>,
-    signedPreKey: {
-        keyId     : <Number>,
-        publicKey : <ArrayBuffer>,
-        signature : <ArrayBuffer>
-    },
-    preKey: {
-        keyId     : <Number>,
-        publicKey : <ArrayBuffer>
-    }
-});
-
-promise.then(function onsuccess() {
-  // encrypt messages
-});
-
-promise.catch(function onerror(error) {
-  // handle identity key conflict
-});
-```
-
-### Encrypting
-
-Once you have a session established with an address, you can encrypt messages
-using SessionCipher.
-
-```js
-var plaintext = "Hello world";
-var sessionCipher = new libsignal.SessionCipher(store, address);
-sessionCipher.encrypt(plaintext).then(function(ciphertext) {
-    // ciphertext -> { type: <Number>, body: <string> }
-    handle(ciphertext.type, ciphertext.body);
-});
-```
-
-### Decrypting
-
-Ciphertexts come in two flavors: WhisperMessage and PreKeyWhisperMessage.
-
-```js
-var address = new SignalProtocolAddress(recipientId, deviceId);
-var sessionCipher = new SessionCipher(store, address);
-
-// Decrypt a PreKeyWhisperMessage by first establishing a new session.
-// Returns a promise that resolves when the message is decrypted or
-// rejects if the identityKey differs from a previously seen identity for this
-// address.
-sessionCipher.decryptPreKeyWhisperMessage(ciphertext).then(function(plaintext) {
-    // handle plaintext ArrayBuffer
-}).catch(function(error) {
-    // handle identity key conflict
-});
-
-// Decrypt a normal message using an existing session
-var sessionCipher = new SessionCipher(store, address);
-sessionCipher.decryptWhisperMessage(ciphertext).then(function(plaintext) {
-    // handle plaintext ArrayBuffer
-});
-```
-
-## Building
-
-To compile curve25519 from C souce files in `/native`, install
-[emscripten](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html).
-
-```
-grunt compile
-```
-
-## Signal*
-
-To switch between an all-Javascript implementation of Signal an implementation
-using WebAssembly compiled from F*, use:
+To switch between the all-Javascript implementation of Signal and the implementation
+using WebAssembly compiled from F\*, use:
 
     make vanilla
 
@@ -202,11 +37,11 @@ and
 
     make fstar
 
+In order to use `make fstar` above and re-generate the WebAssembly artifacts, you need to setup the F\* toolchain. See the `README.md` in the `fstar` folder.
+
+We include in this repo a pre-generated snapshot of the WebAssembly files, in the folder `fstar/signal-wasm`. You can test it by firing up a web server from the repo's root directory and then accessing the `test/` directory.
+
+## Demo
+
 To update the `demo` website with the sources from the `src` and `fstar` directory,
 use `make update-demo`.
-
-## License
-
-Copyright 2015-2018 Open Whisper Systems
-
-Licensed under the GPLv3: http://www.gnu.org/licenses/gpl-3.0.html
