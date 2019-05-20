@@ -1,0 +1,20 @@
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>KreMLin main driver</title>
+    
+    <script type="application/javascript">
+      var my_modules = ["WasmSupport", "FStar", "C_Endianness", "C_String", "TestLib", "Hacl_Hash_SHA2", "Hacl_Impl_AES_256_CBC", "Hacl_Curve25519_51", "Hacl_Ed25519", "Impl_Signal_Crypto", "Impl_Signal_Core", "Test_Impl_Signal"];
+    </script>
+    <script type="application/javascript" src="browser.js"></script>
+    <script type="application/javascript" src="loader.js"></script>
+    <script type="application/javascript">
+      window.addEventListener("load", kremlin_start);
+    </script>
+  </head>
+  <body>
+    <pre id="terminal"></pre>
+  </body>
+</html>
