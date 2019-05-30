@@ -26,6 +26,10 @@ We forked [the official implementation of Signal in Javascript](https://github.c
 
 We also modified `crypto.js` to divert calls to `Curve25519` and other cryptographic primitives to use our F\*-generated WebAssembly code.
 
+## Running the test suite
+
+We include in this repo a pre-generated snapshot of the WebAssembly files, in the folder `fstar/signal-wasm`. You can test it by firing up a web server from the repo's root directory and then accessing the `test/` directory.
+
 ## Switching Signal flavors
 
 To switch between the all-Javascript implementation of Signal and the implementation
@@ -38,8 +42,6 @@ and
     make fstar
 
 In order to use `make fstar` above and re-generate the WebAssembly artifacts, you need to setup the F\* toolchain. See the `README.md` in the `fstar` folder.
-
-We include in this repo a pre-generated snapshot of the WebAssembly files, in the folder `fstar/signal-wasm`. You can test it by firing up a web server from the repo's root directory and then accessing the `test/` directory.
 
 ## Demo
 
