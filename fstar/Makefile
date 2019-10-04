@@ -108,7 +108,7 @@ $(GENERATED_DIR)/Makefile.include: EXTRA+=-fparentheses
 	-bundle 'Hacl.Curve25519_51=Hacl.Impl.Curve25519.*' \
 	-bundle 'Impl.Signal.Core=Impl.Signal.Messages' \
 	-bundle 'Test.Impl.Signal=Test.Spec.Signal' \
-	-tmpdir $* \
+	-tmpdir $* -d wasm \
 	$(EXTRA) \
 	$^
 
