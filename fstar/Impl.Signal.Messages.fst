@@ -41,7 +41,7 @@ inline_for_extraction noextract val concat1:
 
 inline_for_extraction noextract let concat1 #vilen len output x input =
   (**) let hinit = ST.get () in
-  salloc1_trivial hinit (size 1) x (Ghost.hide (loc output))
+  salloc1 hinit (size 1) x (Ghost.hide (loc output))
   (fun _ h1 ->
     (**) live h1 output /\ h1.[output] ==
     (**)    Seq.concat #uint8 #1 #(Ghost.reveal vilen) (Seq.create 1 x) (hinit.[input])
@@ -181,7 +181,7 @@ val serialize_varint: b:lbuffer uint8 (size 6) -> s:size_t -> f:uint8 ->
 let serialize_varint b s f =
   let sub0 = sub #MUT #uint8 #(size 6) b (size 0) (size 1) in
   (**) let h0 = ST.get () in
-  salloc1_trivial h0 (size 5) (u8 0) (Ghost.hide (loc b))
+  salloc1 h0 (size 5) (u8 0) (Ghost.hide (loc b))
   (**) (fun l h1 -> live h1 b /\ v l <= 6 /\
   (**)  v l = Seq.length (Spec.Signal.Messages.serialize_varint (v s) f) /\
   (**)  Seq.sub h1.[b] 0 (v l) == Spec.Signal.Messages.serialize_varint (v s) f
@@ -549,10 +549,6 @@ inline_for_extraction noextract let serialize_whisper_message #vclen clen output
   (**)	    (v prev_counter) (v counter)
   (**)	    h0.[ciphertext]);
   (len0 +. len1 +. len2 +. len3)
-
-(* BB. Aliasing for now... *)
-let whisper_message #vclen clen output our_sending_ephemeral_pub_key prev_counter counter ciphertext  =
-  serialize_whisper_message #vclen clen output our_sending_ephemeral_pub_key prev_counter counter ciphertext
 
 #reset-options "--initial_fuel 0 --max_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 150"
 

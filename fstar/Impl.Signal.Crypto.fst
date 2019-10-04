@@ -95,7 +95,7 @@ val dh:
 
 let dh output secret public =
   let public = sub public (size 1) (size 32) in
-  Hacl.Curve25519_51.ecdh output secret public;
+  ignore (Hacl.Curve25519_51.ecdh output secret public);
   admit()
 
 
@@ -554,7 +554,7 @@ val ecdhe:
     (ensures  fun h0 _ h1 -> modifies (loc shared) h0 h1 /\
       as_seq h1 shared == Spec.Curve25519.scalarmult (as_seq h0 my_priv) (as_seq h0 their_pub))
 let ecdhe shared my_priv their_pub =
-  Hacl.Curve25519_51.ecdh shared my_priv their_pub
+  ignore (Hacl.Curve25519_51.ecdh shared my_priv their_pub)
 
 assume val random_bytes: e:(Ghost.erased Spec.Signal.Crypto.entropy) ->
   len:size_t -> output:lbuffer uint8 len -> Stack unit

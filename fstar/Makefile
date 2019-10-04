@@ -36,7 +36,7 @@ FSTAR_INCLUDE_DIRS = \
   $(HACL_HOME)/code/experimental/aes-256-cbc \
   $(HACL_HOME)/code/curve25519 \
   $(HACL_HOME)/code/curve25519/lemmas \
-  $(HACL_HOME)/code/experimental/ed25519 \
+  $(HACL_HOME)/code/ed25519 \
   $(HACL_HOME)/code/hash \
   $(HACL_HOME)/code/hmac \
   $(HACL_HOME)/code/experimental/hkdf \
@@ -44,6 +44,7 @@ FSTAR_INCLUDE_DIRS = \
 
 
 FSTAR_FLAGS = $(OTHERFLAGS) --cmi \
+  --z3rlimit_factor 16 \
   --cache_checked_modules  --odir $(OUTPUT_DIR) \
   --already_cached "*-Impl.Signal-Spec.Signal" \
   $(addprefix --include ,$(FSTAR_INCLUDE_DIRS))
@@ -53,16 +54,14 @@ FSTAR = $(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
 ENABLE_HINTS = --use_hints --use_hint_hashes --record_hints --query_stats
 
 ROOTS = Impl.Signal.Core.fst $(KREMLIN_HOME)/runtime/WasmSupport.fst \
-	$(HACL_HOME)/code/experimental/ed25519/Hacl.Ed25519.fst \
+	$(HACL_HOME)/code/ed25519/Hacl.Ed25519.fst \
 	Test.Spec.Signal.fst Test.Impl.Signal.fst
 
 .PRECIOUS: %.krml
 
 ifndef MAKE_RESTARTS
-.depend: .FORCE
+.depend:
 	$(FSTAR) --dep full $(ROOTS) --extract '* -Prims -FStar -LowStar -Impl.Signal -Test.Impl -Hacl' > $@
-.PHONY: .FORCE
-.FORCE:
 endif
 include .depend
 
@@ -89,7 +88,7 @@ KREMLIN=$(KREMLIN_HOME)/krml
 
 # 2. Generation of .c files
 
-$(GENERATED_DIR_WASM)/Makefile.include: EXTRA+=-wasm -d wasm 
+$(GENERATED_DIR_WASM)/Makefile.include: EXTRA+=-wasm -d wasm
 $(GENERATED_DIR)/Makefile.include: EXTRA+=-fparentheses
 
 # We use -drop (deprecated) only to avoid creating unnecessary .c,.h files
