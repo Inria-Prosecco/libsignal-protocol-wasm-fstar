@@ -122,7 +122,7 @@ val hkdf1:
 let hkdf1 #vlen #vilen output len input salt ilen info =
   push_frame ();
   let tmp = create (size 32) (u8 0) in
-  (* admit(); *)
+  admit();
   (* // Type mismatch: info is immutable but HKDF wants a mutable buffer. This will *)
   (* // be fixed once we convert all of HACL* to the new LowStar.ConstBuffer. *)
   Hacl.HKDF.extract_sha2_256 tmp salt (size 32) input len;

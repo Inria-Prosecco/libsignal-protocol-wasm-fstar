@@ -15,7 +15,7 @@ include $(HACL_HOME)/Makefile.include
 
 FSTAR_INCLUDE_PATH= \
 	$(KREMLIN_HOME)/kremlib \
-	$(addprefix $(HACL_HOME)/,obj lib specs specs/lemmas specs/alternative specs/experimental code/hash code/hmac code/hkdf code/curve25519 code/ed25519 code/experimental/aes code/experimental/aes-256-cbc providers/evercrypt providers/evercrypt/fst vale/specs/hardware vale/specs/defs)
+	$(addprefix $(HACL_HOME)/,obj lib specs specs/lemmas specs/alternative specs/experimental code/hash code/hmac code/hkdf code/meta code/curve25519 code/ed25519 code/experimental/aes code/experimental/aes-256-cbc providers/evercrypt providers/evercrypt/fst vale/specs/hardware vale/specs/defs)
 
 # In interactive mode, chill out and don't roll over if
 # something isn't cached somewhere.
@@ -25,12 +25,12 @@ FSTAR_NO_FLAGS= \
 	--cache_dir $(SIGNAL_HOME)/obj \
 	--odir $(SIGNAL_HOME)/obj \
 	--cmi \
+	--query_stats \
 	--use_hints \
 	--record_hints \
 	$(OTHERFLAGS)
 
 FSTAR_FLAGS=$(FSTAR_NO_FLAGS) \
-	--already_cached '*,-Impl.Signal,-Spec.Signal,-Test.Spec.Signal,-Test.Impl.Signal' \
 	--warn_error @241 \
 
 FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
@@ -42,7 +42,6 @@ FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
 # -------
 
 PROJECT_ROOTS=Test.Impl.Signal.fst
-OUTPUT_DIR=$(HACL_HOME)/obj
 
 # This is the right way to ensure the .depend file always gets re-built.
 ifndef NODEPEND
