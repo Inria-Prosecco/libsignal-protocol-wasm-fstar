@@ -92,8 +92,8 @@ val respond:
   their_onetime_pub_key: pubkey ->  (* $g^e$ *)
   Tot (root_key:key)                   (* output: $rk_0$ *)
 
-let respond ridsk rssk oresk sidpk iepk =
-  let dh1 = dh rssk sidpk in
+let respond ridsk rssk oresk iidpk iepk =
+  let dh1 = dh rssk iidpk in
   let dh2 = dh ridsk iepk in
   let dh3 = dh rssk iepk in
   let ss =
