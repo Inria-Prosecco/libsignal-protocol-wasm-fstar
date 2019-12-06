@@ -11,12 +11,20 @@ open Lib.ByteBuffer
 open Impl.Signal.Crypto
 
 module Seq = Lib.Sequence
-
-#reset-options "--initial_fuel 0 --max_fuel 0 --initial_ifuel 0 --max_ifuel 0"
-
 module ST = FStar.HyperStack.ST
 
+#reset-options "--z3rlimit 50 --fuel 0 --ifuel 0"
+
 let op_String_Access (#a:Type) (#len:size_t) (h:mem) (b:lbuffer a len) = as_seq h b
+
+
+(**) noextract let lemma_concat1
+(**)  (#len:size_nat{len < max_size_t})
+(**)  (a:uint8) (b:Spec.Signal.Crypto.lbytes_sub len) : Lemma (
+(**)    Spec.Signal.Messages.(( @: )) #len a b == Seq.concat
+(**)      (Seq.to_lseq (Seq.create 1 a)) (Seq.to_lseq b)
+(**)  ) = ()
+
 
 inline_for_extraction noextract val concat1:
      #vilen:Ghost.erased size_nat{Ghost.reveal vilen + 1 <= max_size_t}
@@ -29,15 +37,6 @@ inline_for_extraction noextract val concat1:
   (ensures  (fun h0 _ h1 -> modifies1 output h0 h1 /\
     h1.[output] == Spec.Signal.Messages.(( @: )) #(Ghost.reveal vilen) x h0.[input]
   ))
-
-#set-options "--z3rlimit 20"
-
-(**) noextract let lemma_concat1
-(**)  (#len:size_nat{len < max_size_t})
-(**)  (a:uint8) (b:Spec.Signal.Crypto.lbytes_sub len) : Lemma (
-(**)    Spec.Signal.Messages.(( @: )) #len a b == Seq.concat
-(**)      (Seq.to_lseq (Seq.create 1 a)) (Seq.to_lseq b)
-(**)  ) = ()
 
 inline_for_extraction noextract let concat1 #vilen len output x input =
   (**) let hinit = ST.get () in
@@ -59,6 +58,7 @@ inline_for_extraction noextract let concat1 #vilen len output x input =
   );
   (**) lemma_concat1 #(Ghost.reveal vilen) x hinit.[input]
 
+
 inline_for_extraction noextract val equal_bytes:
     #vlen: Ghost.erased size_nat
   -> len: size_t{v len == Ghost.reveal vlen}
@@ -72,6 +72,7 @@ inline_for_extraction noextract val equal_bytes:
 
 inline_for_extraction noextract let equal_bytes #vlen len input0 input1 =
   secure_compare #vlen len input0 input1
+
 
 val serialize_size_get_length: s:size_t -> Tot (l:size_t{v l == Spec.Signal.Messages.serialize_size_get_length (v s)})
 let serialize_size_get_length s =
@@ -88,7 +89,6 @@ let serialize_size_get_length s =
 let serialize_bytes_get_length (b:size_t{v b + 6 <= max_size_t}) : Tot (l:size_t{v l == Spec.Signal.Messages.serialize_bytes_get_length (v b)}) =
   1ul +! serialize_size_get_length b +! b
 
-#push-options "--z3rlimit 100"
 
 let serialize_whisper_message_get_length
   (prev_counter:size_t)
@@ -100,9 +100,6 @@ let serialize_whisper_message_get_length
   1ul +! serialize_size_get_length counter +!
   1ul +! serialize_size_get_length prev_counter +!
   serialize_bytes_get_length ciphertext_len
-
-#pop-options
-
 
 
 val serialize_size: s:size_t -> b:lbuffer uint8 (size 5) ->
@@ -168,8 +165,6 @@ let serialize_size sz b =
     size 5)
 
 
-#set-options "--z3rlimit 30"
-
 val serialize_varint: b:lbuffer uint8 (size 6) -> s:size_t -> f:uint8 ->
   Stack (l:size_t{v l <= 6})
   (requires (fun h -> live h b))
@@ -197,6 +192,9 @@ let serialize_varint b s f =
     l +. (size 1)
   )
 
+
+#reset-options "--z3rlimit 100 --fuel 0 --ifuel 0"
+
 val serialize_bytes:
      #vilen: (Ghost.erased size_nat){Ghost.reveal vilen + 6 <= max_size_t}
   -> len: size_t{v len = Ghost.reveal vilen}
@@ -210,10 +208,9 @@ val serialize_bytes:
     Seq.sub h1.[o] 0 (v l) == Spec.Signal.Messages.serialize_bytes h0.[i] f
   ))
 
-#set-options "--z3rlimit 100"
 
 let serialize_bytes #vilen len o i f =
-  let max = size 6 +. len in
+  let max = (size 6) +. len in
   push_frame ();
   let b1full = create (size 5) (u8 0) in
   (**) let h0 = ST.get () in
@@ -245,8 +242,6 @@ let serialize_bytes #vilen len o i f =
   (size 1 +! b1len +! len)
 
 
-
-#set-options "--z3rlimit 10"
 
 /// Signal Constants
 
@@ -305,9 +300,10 @@ let const_label_WhisperRatchet = createL_global Spec.Signal.Messages.label_Whisp
 /// Serializing WhisperMessages
 
 
-#set-options "--z3rlimit 50"
+#reset-options "--z3rlimit 50 --fuel 0 --ifuel 0"
 
-inline_for_extraction noextract val serialize_whisper_message_aux0:
+inline_for_extraction noextract
+val serialize_whisper_message_aux0:
      #vclen: (Ghost.erased size_nat){Ghost.reveal vclen + 57 <= max_size_t}
   -> clen:size_t{size_v clen = Ghost.reveal vclen}
   -> output:lbuffer uint8 (clen +! size 57)
@@ -322,7 +318,8 @@ inline_for_extraction noextract val serialize_whisper_message_aux0:
       Spec.Signal.Messages.serialize_bytes h0.[our_sending_ephemeral_pub_key] (u8 1)
   ))
 
-inline_for_extraction noextract let serialize_whisper_message_aux0 #vclen clen bxfull  our_sending_ephemeral_pub_key =
+inline_for_extraction noextract
+let serialize_whisper_message_aux0 #vclen clen bxfull  our_sending_ephemeral_pub_key =
   let max : size_t = size 57 +. clen in
   let b0full : lbuffer uint8 (size 39) = sub #MUT #uint8 #max bxfull (size 0) (size 39) in
   let len0 : size_t =
@@ -330,7 +327,9 @@ inline_for_extraction noextract let serialize_whisper_message_aux0 #vclen clen b
   in
   len0
 
-inline_for_extraction noextract val serialize_whisper_message_aux1:
+
+inline_for_extraction noextract
+val serialize_whisper_message_aux1:
      #vclen: (Ghost.erased size_nat){Ghost.reveal vclen + 57 <= max_size_t}
   -> clen:size_t{size_v clen = Ghost.reveal vclen}
   -> output:lbuffer uint8 (clen +! size 57)
@@ -350,7 +349,8 @@ inline_for_extraction noextract val serialize_whisper_message_aux1:
       Spec.Signal.Messages.serialize_bytes h0.[our_sending_ephemeral_pub_key] (u8 1)
   ))
 
-inline_for_extraction noextract let serialize_whisper_message_aux1 #vclen clen
+inline_for_extraction noextract
+let serialize_whisper_message_aux1 #vclen clen
   bxfull our_sending_ephemeral_pub_key len0 counter =
   let max : size_t = size 57 +. clen in
   let b0 : lbuffer uint8 len0 = sub #MUT #uint8 #max bxfull (size 0) len0 in
@@ -359,7 +359,11 @@ inline_for_extraction noextract let serialize_whisper_message_aux1 #vclen clen
   (**) assert(disjoint b1full b0);
   len1
 
-inline_for_extraction noextract val serialize_whisper_message_aux2:
+
+#reset-options "--z3rlimit 200 --fuel 0 --ifuel 0"
+
+inline_for_extraction noextract
+val serialize_whisper_message_aux2:
     #vclen: (Ghost.erased size_nat){Ghost.reveal vclen + 57 <= max_size_t}
   -> clen:size_t{size_v clen = Ghost.reveal vclen}
   -> output:lbuffer uint8 (clen +! size 57)
@@ -385,7 +389,9 @@ inline_for_extraction noextract val serialize_whisper_message_aux2:
       Spec.Signal.Messages.serialize_bytes h0.[our_sending_ephemeral_pub_key] (u8 1)
   ))
 
-inline_for_extraction noextract let serialize_whisper_message_aux2 #vclen clen
+
+inline_for_extraction noextract
+let serialize_whisper_message_aux2 #vclen clen
   bxfull our_sending_ephemeral_pub_key len0 counter len1 prev_counter =
   let max : size_t = size 57 +. clen in
   let b0 : lbuffer uint8 len0 = sub #MUT #uint8 #max bxfull (size 0) len0 in
@@ -395,6 +401,15 @@ inline_for_extraction noextract let serialize_whisper_message_aux2 #vclen clen
   (**) assert(disjoint b2full b0);
   (**) assert(disjoint b2full b1);
   len2
+
+
+noextract let lemma_add3
+  (x0:size_t)
+  (x1:size_t{v x0 + v x1 <= max_size_t})
+  (x2:size_t{v x0 + v x1 + v x2 <= max_size_t}) : Lemma (ensures (
+    v (x0 +. x1 +. x2) = v x0 + v x1 + v x2
+  )) = ()
+
 
 inline_for_extraction noextract val serialize_whisper_message_aux3:
     #vclen: (Ghost.erased size_nat){Ghost.reveal vclen + 57 <= max_size_t}
@@ -428,16 +443,9 @@ inline_for_extraction noextract val serialize_whisper_message_aux3:
       Spec.Signal.Messages.serialize_bytes h0.[our_sending_ephemeral_pub_key] (u8 1)
   ))
 
-#reset-options "--z3refresh --z3rlimit 100 --max_fuel 0 --initial_fuel 0 --max_ifuel 0 --initial_ifuel 0"
 
-noextract let lemma_add3
-  (x0:size_t)
-  (x1:size_t{v x0 + v x1 <= max_size_t})
-  (x2:size_t{v x0 + v x1 + v x2 <= max_size_t}) : Lemma (ensures (
-    v (x0 +. x1 +. x2) = v x0 + v x1 + v x2
-  )) = ()
-
-inline_for_extraction noextract let serialize_whisper_message_aux3 #vclen clen
+inline_for_extraction noextract
+let serialize_whisper_message_aux3 #vclen clen
   bxfull our_sending_ephemeral_pub_key len0 counter len1 prev_counter len2 ciphertext =
   let max : size_t = size 57 +! clen in
   lemma_add3 len0 len1 len2;
@@ -451,7 +459,6 @@ inline_for_extraction noextract let serialize_whisper_message_aux3 #vclen clen
   (**) assert(disjoint b3full bbefore);
   len3
 
-#set-options "--z3rlimit 50"
 
 noextract let lemma_add4
   (x0:size_t)
@@ -461,31 +468,6 @@ noextract let lemma_add4
     v (x0 +. x1 +. x2 +. x3) = v x0 + v x1 + v x2 + v x3
   )) = ()
 
-
-inline_for_extraction noextract val serialize_whisper_message:
-     #vclen: (Ghost.erased size_nat){Ghost.reveal vclen + 57 <= max_size_t}
-  -> clen:size_t{size_v clen = Ghost.reveal vclen}
-  -> output:lbuffer uint8 (clen +! size 57)
-  -> our_sending_ephemeral_pub_key:pubkey_p
-  -> prev_counter:size_t
-  -> counter:size_t
-  -> ciphertext:lbuffer uint8 clen ->
-  Stack size_t
-  (requires (fun h -> live h output /\ live h our_sending_ephemeral_pub_key /\ live h ciphertext
-		 /\ disjoint output our_sending_ephemeral_pub_key
-                 /\ disjoint output ciphertext
-  ))
-  (ensures  (fun h0 len h1 -> modifies1 output h0 h1 /\ begin
-    let expected = Spec.Signal.Messages.serialize_whisper_message
-	h0.[our_sending_ephemeral_pub_key]
-	(v prev_counter) (v counter)
-	h0.[ciphertext]
-    in
-    v len = Spec.Signal.Messages.serialize_whisper_message_get_length
-      (v prev_counter) (v counter) (v clen) /\
-    Seq.sub h1.[output] 0 (v len) == expected
-    end
-  ))
 
 val lemma_concat4_right:
     #a:Type0
@@ -515,7 +497,34 @@ let lemma_concat4_right #a len0 s0 len1 s1 len2 s2 len3 s3 s =
   FStar.Seq.Properties.lemma_split s len0;
   FStar.Seq.Properties.lemma_split s' len0
 
-inline_for_extraction noextract let serialize_whisper_message #vclen clen output
+
+inline_for_extraction noextract val serialize_whisper_message:
+     #vclen: (Ghost.erased size_nat){Ghost.reveal vclen + 57 <= max_size_t}
+  -> clen:size_t{size_v clen = Ghost.reveal vclen}
+  -> output:lbuffer uint8 (clen +! size 57)
+  -> our_sending_ephemeral_pub_key:pubkey_p
+  -> prev_counter:size_t
+  -> counter:size_t
+  -> ciphertext:lbuffer uint8 clen ->
+  Stack size_t
+  (requires (fun h -> live h output /\ live h our_sending_ephemeral_pub_key /\ live h ciphertext
+		 /\ disjoint output our_sending_ephemeral_pub_key
+                 /\ disjoint output ciphertext
+  ))
+  (ensures  (fun h0 len h1 -> modifies1 output h0 h1 /\ begin
+    let expected = Spec.Signal.Messages.serialize_whisper_message
+	h0.[our_sending_ephemeral_pub_key]
+	(v prev_counter) (v counter)
+	h0.[ciphertext]
+    in
+    v len = Spec.Signal.Messages.serialize_whisper_message_get_length
+      (v prev_counter) (v counter) (v clen) /\
+    Seq.sub h1.[output] 0 (v len) == expected
+    end
+  ))
+
+inline_for_extraction noextract
+let serialize_whisper_message #vclen clen output
   our_sending_ephemeral_pub_key prev_counter counter ciphertext =
   (**) let h0 = ST.get () in
   let max : size_t = size 57 +. clen in
@@ -550,8 +559,8 @@ inline_for_extraction noextract let serialize_whisper_message #vclen clen output
   (**)	    h0.[ciphertext]);
   (len0 +. len1 +. len2 +. len3)
 
-#reset-options "--initial_fuel 0 --max_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 150"
 
+#reset-options "--z3rlimit 150 --fuel 0 --ifuel 0"
 
 val mac_whisper_msg:
     #vilen: (Ghost.erased size_nat){Ghost.reveal vilen + 32 +

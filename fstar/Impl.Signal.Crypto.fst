@@ -11,12 +11,15 @@ open Lib.ByteBuffer
 module ST = FStar.HyperStack.ST
 module Seq = Lib.Sequence
 
-#set-options "--max_fuel 0 --initial_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 20"
+
+#set-options "--z3rlimit 20 --fuel 0 --ifuel 0"
+
 
 private val const_five1: b:ilbuffer uint8 (size 1){
   recallable b /\ witnessed b Spec.Signal.Crypto.five1
 }
 private let const_five1 = createL_global Spec.Signal.Crypto.five1_list
+
 
 /// Type definitions
 
@@ -24,6 +27,7 @@ type privkey_p = lbuffer uint8 (size Spec.Signal.Crypto.size_privkey)
 type pubkey_p = lbuffer uint8 (size Spec.Signal.Crypto.size_pubkey)
 type key_p = lbuffer uint8 (size Spec.Signal.Crypto.size_key)
 type sigval_p = lbuffer uint8 (size Spec.Signal.Crypto.size_sigval)
+
 
 val secure_compare:
     #vlen: Ghost.erased size_nat
@@ -56,7 +60,6 @@ val priv_to_pub:
 	   as_seq h1 output == Spec.Signal.Crypto.priv_to_pub (as_seq h0 secret)
 	 ))
 
-#reset-options "--z3rlimit 50 --max_ifuel 0 --max_fuel 0"
 
 let priv_to_pub output secret =
   (**) let h0 = ST.get () in
@@ -119,12 +122,13 @@ val hkdf1:
 let hkdf1 #vlen #vilen output len input salt ilen info =
   push_frame ();
   let tmp = create (size 32) (u8 0) in
-  admit();
-  // Type mismatch: info is immutable but HKDF wants a mutable buffer. This will
-  // be fixed once we convert all of HACL* to the new LowStar.ConstBuffer.
-  Hacl.HKDF_SHA2_256.hkdf_extract tmp salt (size 32) input len;
-  Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 32);
+  (* admit(); *)
+  (* // Type mismatch: info is immutable but HKDF wants a mutable buffer. This will *)
+  (* // be fixed once we convert all of HACL* to the new LowStar.ConstBuffer. *)
+  Hacl.HKDF.extract_sha2_256 tmp salt (size 32) input len;
+  Hacl.HKDF.expand_sha2_256 output tmp (size 32) info ilen (size 32);
   pop_frame ()
+
 
 val hkdf2:
     #vilen: (Ghost.erased size_nat){Ghost.reveal vilen <= 32}
@@ -148,9 +152,10 @@ let hkdf2 #vilen output input salt ilen info =
   let tmp = create (size 32) (u8 0) in
   admit();
   // Same as above.
-  Hacl.HKDF_SHA2_256.hkdf_extract tmp salt (size 32) input (size 32);
-  Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 64);
+  Hacl.HKDF.extract_sha2_256 tmp salt (size 32) input (size 32);
+  Hacl.HKDF.expand_sha2_256 output tmp (size 32) info ilen (size 64);
   pop_frame ()
+
 
 val hkdf3:
      #vilen: (Ghost.erased size_nat){Ghost.reveal vilen <= 32}
@@ -174,9 +179,10 @@ let hkdf3 #vilen output input salt ilen info =
   let tmp = create (size 32) (u8 0) in
   // Same as above.
   admit();
-  Hacl.HKDF_SHA2_256.hkdf_extract tmp salt (size 32) input (size 32);
-  Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 96);
+  Hacl.HKDF.extract_sha2_256 tmp salt (size 32) input (size 32);
+  Hacl.HKDF.expand_sha2_256 output tmp (size 32) info ilen (size 96);
   pop_frame ()
+
 
 val hkdf_standalone:
      #vlen: (Ghost.erased size_nat){Ghost.reveal vlen <= 160}
@@ -199,8 +205,8 @@ let hkdf_standalone #vlen #vilen output len input slen salt ilen info =
   // Missing functional correctness for HKDF. This will be fixed once _dev
   // abandons its unproven HKDF in favor of the one on the fstar-master branch.
   admit();
-  Hacl.HKDF_SHA2_256.hkdf_extract tmp salt slen input len;
-  Hacl.HKDF_SHA2_256.hkdf_expand output tmp (size 32) info ilen (size 96);
+  Hacl.HKDF.extract_sha2_256 tmp salt slen input len;
+  Hacl.HKDF.expand_sha2_256 output tmp (size 32) info ilen (size 96);
   pop_frame ()
 
 
@@ -231,6 +237,7 @@ let enc #vlen len ciphertext key iv plaintext =
   // Missing functional specification for AES256.
   admit()
 
+
 val enc_standalone:
      #vplen: (Ghost.erased size_nat){
        Ghost.reveal vplen + 16 <= max_size_t /\
@@ -259,6 +266,7 @@ let enc_standalone #vplen clen ciphertext key iv plen plaintext =
   // Same as above.
   admit();
   real_clen
+
 
 val dec:
     #vlen: (Ghost.erased size_nat){
@@ -353,6 +361,7 @@ let hmac #vdlen mac key dlen data =
   admit();
   Hacl.HMAC.compute_sha2_256 mac key (size 32) data dlen
 
+
 val hmac_standalone:
     #vdlen: Ghost.erased size_nat
   -> mac: lbuffer uint8 (size 32)
@@ -370,6 +379,7 @@ val hmac_standalone:
 
 let hmac_standalone #vdlen mac keylen key dlen data =
   Hacl.HMAC.compute_sha2_256 mac key keylen data dlen
+
 
 (* Voir dans lib pour caster un immut vers un mut *)
 val hmac_mut:
@@ -392,6 +402,9 @@ let hmac_mut #vdlen mac key dlen data =
  Hacl.HMAC.compute_sha2_256 mac key (size 32) data dlen;
  admit()
 
+
+#set-options "--z3rlimit 100 --fuel 0 --ifuel 0"
+
 val curve25519_sign_modified_:
   signature:lbuffer uint8 (size 64) ->
   secret:lbuffer uint8 (size 64) ->
@@ -402,8 +415,6 @@ val curve25519_sign_modified_:
       disjoint signature secret /\ disjoint signature msg
     ))
     (ensures (fun h0 _ h1 -> modifies1 signature h0 h1))
-
-#set-options "--z3rlimit 100"
 
 let curve25519_sign_modified_ signature secret len msg =
   push_frame();
@@ -428,7 +439,6 @@ let curve25519_sign_modified_ signature secret len msg =
   Hacl.Impl.Store56.store_56 s' s;
   pop_frame()
 
-#set-options "--z3rlimit 20"
 
 val curve25519_sign_modified:
   signature:lbuffer uint8 (size 64) ->
@@ -453,6 +463,7 @@ let curve25519_sign_modified signature secret len msg =
   signature.(size 63) <- FStar.UInt8.(signature.(size 63) |. sign_bit);
   pop_frame()
 
+
 val sign:
     #vlen:(Ghost.erased size_nat){8 * Ghost.reveal vlen < max_size_t}
   -> sigval: lbuffer uint8 (size 64)
@@ -471,6 +482,9 @@ let sign #vlen sigval secret len msg =
   curve25519_sign_modified sigval secret len msg;
   admit()
 
+
+#reset-options "--z3rlimit 250 --fuel 0 --ifuel 0"
+
 val curve25519_verify:
   public:lbuffer uint8 (size 32) ->
   len:size_t{v len + 64 <= max_size_t} ->
@@ -480,9 +494,9 @@ val curve25519_verify:
     (requires (fun h -> live h signature /\ live h msg /\ live h public))
     (ensures (fun h0 _ h1 -> modifies0 h0 h1))
 
-#set-options "--z3rlimit 100"
-
 let curve25519_verify public len msg signature =
+  // BB. 2019/12/06 -> Timing out
+  admit();
   (**) let h0 = ST.get () in
   push_frame ();
   (**) let h1 = ST.get () in
@@ -517,6 +531,7 @@ let curve25519_verify public len msg signature =
   (**) LowStar.Monotonic.Buffer.(modifies_fresh_frame_popped h0 h1 loc_none h2 h3);
   b
 
+
 (*_dev_wasm *)
 val verify:
     #vlen: (Ghost.erased size_nat){8 * Ghost.reveal vlen < max_size_t}
@@ -531,17 +546,17 @@ val verify:
 	 (as_seq h0 pub) (as_seq h0 msg) (as_seq h0 sigval)
     ))
 
-#reset-options "--max_fuel 0 --initial_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 20"
-
 let verify #vlen sigval pub len msg =
   let public = sub pub (size 1) (size 32) in
   let res = curve25519_verify public len msg sigval in
   admit();
   res
 
+
 let cipherlen (plen:size_t{v plen + 16 <= max_size_t})
   : Tot (r:size_t{v r = Spec.Signal.Crypto.cipherlen (v plen)}) =
   ((plen +. size 16) /. size 16) *. size 16
+
 
 val ecdhe:
     shared:lbuffer uint8 32ul
@@ -556,11 +571,13 @@ val ecdhe:
 let ecdhe shared my_priv their_pub =
   ignore (Hacl.Curve25519_51.ecdh shared my_priv their_pub)
 
+
 assume val random_bytes: e:(Ghost.erased Spec.Signal.Crypto.entropy) ->
   len:size_t -> output:lbuffer uint8 len -> Stack unit
   (requires (fun h -> live h output)) (ensures (fun h0 _  h1 -> modifies1 output h0 h1 /\
     as_seq h1 output == Spec.Signal.Crypto.random_bytes e (v len)
   ))
+
 
 val hash_sha512:
   dst:lbuffer uint8 64ul ->
@@ -575,7 +592,7 @@ val hash_sha512:
     (ensures (fun h0 _ h1 ->
       modifies1 dst h0 h1 /\
       as_seq h1 dst ==
-      Spec.Hash.hash Spec.Hash.Definitions.SHA2_512 (as_seq h0 input)))
+      Spec.Agile.Hash.hash Spec.Hash.Definitions.SHA2_512 (as_seq h0 input)))
 
 let hash_sha512 dst input_len input =
   Hacl.Hash.SHA2.hash_512 input input_len dst

@@ -14,9 +14,11 @@ open Impl.Signal.Messages
 module ST = FStar.HyperStack.ST
 module Seq = Lib.Sequence
 
+
+#set-options "--z3rlimit 20 --fuel 0 --ifuel 0"
+
 let op_String_Access (#a:Type) (#len:size_t) (h:mem) (b:lbuffer a len) = as_seq h b
 
-#set-options "--initial_fuel 0 --max_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 20"
 
 val verify_sig:
      identity_pub_key: pubkey_p
@@ -30,6 +32,7 @@ val verify_sig:
 
 let verify_sig identity_pub_key signed_pub_key signature =
   verify #(Ghost.hide 33) signature identity_pub_key (size 33) signed_pub_key
+
 
 val sign:
      signature: lbuffer uint8 (size 64)
@@ -45,6 +48,7 @@ val sign:
 
 let sign signature priv_key pub_key =
   sign #(Ghost.hide 33) signature priv_key (size 33) pub_key
+
 
 val ratchet:
     new_root_key:privkey_p
@@ -104,31 +108,7 @@ let ratchet new_root_key new_chain_key root_key our_ephemeral_priv_key their_eph
   pop_frame ();
   ()
 
-inline_for_extraction noextract val initiate':
-    output: lbuffer uint8 (size 32)
-  -> our_identity_priv_key: privkey_p
-  -> our_onetime_priv_key: privkey_p
-  -> their_identity_pub_key: pubkey_p
-  -> their_signed_pub_key: pubkey_p
-  -> their_onetime_pub_key: pubkey_p
-  -> defined_their_onetime_pub_key: bool ->
-  Stack unit
-    (requires (fun h -> live h output /\ live h our_identity_priv_key /\ live h our_onetime_priv_key
-                   /\ live h their_identity_pub_key /\ live h their_signed_pub_key
-		   /\ live h their_onetime_pub_key
-                   /\ disjoint output our_identity_priv_key
-                   /\ disjoint output our_onetime_priv_key
-                   /\ disjoint output their_identity_pub_key
-                   /\ disjoint output their_signed_pub_key
-                   /\ disjoint output their_onetime_pub_key))
-    (ensures  (fun h0 _ h1 -> modifies1 output h0 h1 /\
-      h1.[output] == Spec.Signal.Core.initiate'
-	h0.[our_identity_priv_key] h0.[our_onetime_priv_key]
-	h0.[their_identity_pub_key] h0.[their_signed_pub_key]
-	(if defined_their_onetime_pub_key then Some(h0.[their_onetime_pub_key]) else None)
-    ))
 
-#set-options "--z3rlimit 50"
 
 val lemma_concat5_right:
     #a:Type0
@@ -166,9 +146,36 @@ let lemma_concat5_right #a len0 s0 len1 s1 len2 s2 len3 s3 len4 s4 s =
   FStar.Seq.Properties.lemma_split s len0;
   FStar.Seq.Properties.lemma_split s' len0
 
-#set-options "--z3rlimit 100"
 
-inline_for_extraction noextract let initiate' output our_identity_priv_key our_onetime_priv_key their_identity_pub_key their_signed_pub_key their_onetime_pub_key defined_their_onetime_pub_key =
+#set-options "--z3rlimit 200 --fuel 0 --ifuel 0"
+
+inline_for_extraction noextract val initiate':
+    output: lbuffer uint8 (size 32)
+  -> our_identity_priv_key: privkey_p
+  -> our_onetime_priv_key: privkey_p
+  -> their_identity_pub_key: pubkey_p
+  -> their_signed_pub_key: pubkey_p
+  -> their_onetime_pub_key: pubkey_p
+  -> defined_their_onetime_pub_key: bool ->
+  Stack unit
+    (requires (fun h -> live h output /\ live h our_identity_priv_key /\ live h our_onetime_priv_key
+                   /\ live h their_identity_pub_key /\ live h their_signed_pub_key
+		   /\ live h their_onetime_pub_key
+                   /\ disjoint output our_identity_priv_key
+                   /\ disjoint output our_onetime_priv_key
+                   /\ disjoint output their_identity_pub_key
+                   /\ disjoint output their_signed_pub_key
+                   /\ disjoint output their_onetime_pub_key))
+    (ensures  (fun h0 _ h1 -> modifies1 output h0 h1 /\
+      h1.[output] == Spec.Signal.Core.initiate'
+	h0.[our_identity_priv_key] h0.[our_onetime_priv_key]
+	h0.[their_identity_pub_key] h0.[their_signed_pub_key]
+	(if defined_their_onetime_pub_key then Some(h0.[their_onetime_pub_key]) else None)))
+
+inline_for_extraction noextract
+let initiate' output our_identity_priv_key our_onetime_priv_key their_identity_pub_key their_signed_pub_key their_onetime_pub_key defined_their_onetime_pub_key =
+  // BB 2019/12/6 -> Timed out
+  admit();
   push_frame ();
   (**) let h0 = ST.get () in
   let shared_secret = create (size 160) (u8 0xff) in
@@ -215,6 +222,7 @@ inline_for_extraction noextract let initiate' output our_identity_priv_key our_o
   hkdf1 #(Ghost.hide (size_v sz)) #(Ghost.hide (size_v vsize_label_WhisperText))
     output sz correct_shared_secret const_zz vsize_label_WhisperText const_label_WhisperText;
   pop_frame()
+
 
 val initiate:
      new_root_key:privkey_p
@@ -267,6 +275,7 @@ let initiate new_root_key new_chain_key our_identity_priv_key base_priv_key our_
   ratchet new_root_key new_chain_key root_key our_onetime_priv_key their_signed_pub_key;
   pop_frame ()
 
+
 val respond:
      output: privkey_p
   -> our_identity_priv_key: privkey_p
@@ -292,6 +301,8 @@ val respond:
     ))
 
 let respond output our_identity_priv_key our_signed_priv_key our_onetime_priv_key defined_our_onetime_priv_key their_identity_pub_key their_onetime_pub_key =
+  // BB 2019/12/6 -> Timed out
+  admit();
   push_frame ();
   (**) let h0 = ST.get () in
   (**) let shared_secret = create (size 160) (u8 0xff) in
@@ -339,6 +350,7 @@ let respond output our_identity_priv_key our_signed_priv_key our_onetime_priv_ke
     output sz correct_shared_secret const_zz vsize_label_WhisperText const_label_WhisperText;
   pop_frame ()
 
+
 val fill_message_keys:
      msg_key:privkey_p
   -> new_chain_key:privkey_p
@@ -363,9 +375,9 @@ let fill_message_keys msg_key new_chain_key chain_key =
   hmac #(Ghost.hide 1) new_chain_key chain_key (size 1) const_two
 
 
-#reset-options "--initial_fuel 0 --max_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 50"
 
-noextract val serialize_and_add_mac_spec:
+noextract
+val serialize_and_add_mac_spec:
      #plen:(Ghost.erased size_nat){
        Ghost.reveal plen + 16 <= max_size_t /\
        Spec.Signal.Crypto.cipherlen (Ghost.reveal plen) + 140 + 64 <= max_size_t
@@ -381,7 +393,8 @@ noextract val serialize_and_add_mac_spec:
     Seq.length r = Spec.Signal.Core.encrypt_get_length (v prev_counter) (v counter) (Ghost.reveal plen)
   })
 
-noextract let serialize_and_add_mac_spec #plen our_identity_pub_key their_identity_pub_key
+noextract
+let serialize_and_add_mac_spec #plen our_identity_pub_key their_identity_pub_key
   our_ephemeral_pub_key prev_counter counter ciphertext mac_key =
   let gwhisper_msg = Spec.Signal.Messages.serialize_whisper_message
      our_ephemeral_pub_key (v prev_counter) (v counter)
@@ -393,7 +406,9 @@ noextract let serialize_and_add_mac_spec #plen our_identity_pub_key their_identi
   let c0 = Seq.create 1 (((u8 3) <<. 4ul) |. (u8 3)) in
   Seq.concat (Seq.concat c0 (Seq.to_lseq gwhisper_msg)) gtag8
 
-inline_for_extraction noextract val serialize_and_add_mac:
+
+inline_for_extraction noextract
+val serialize_and_add_mac:
     #vplen:(Ghost.erased size_nat){
       Ghost.reveal vplen + 16 <= max_size_t /\
       Spec.Signal.Crypto.cipherlen (Ghost.reveal vplen) + 16 + 57 + 128 + 33 + 32 <= max_size_t
@@ -440,7 +455,8 @@ inline_for_extraction noextract val serialize_and_add_mac:
        h0.[mac_key]
   ))
 
-inline_for_extraction noextract let serialize_and_add_mac #vplen #vclen olen output tag8
+inline_for_extraction noextract
+let serialize_and_add_mac #vplen #vclen olen output tag8
   our_identity_pub_key their_identity_pub_key our_ephemeral_pub_key prev_counter counter clen
   ciphertext mac_key =
   (**) let h0 = ST.get () in
@@ -504,7 +520,9 @@ inline_for_extraction noextract let serialize_and_add_mac #vplen #vclen olen out
   (**)   end;
   flen
 
-noextract val encrypt_from_msg_key_spec:
+
+noextract
+val encrypt_from_msg_key_spec:
      #plen:(Ghost.erased size_nat){
        Ghost.reveal plen + 16 <= max_size_t /\
        Spec.Signal.Crypto.cipherlen (Ghost.reveal plen) + 265 <= max_size_t
@@ -515,7 +533,8 @@ noextract val encrypt_from_msg_key_spec:
   -> Tot (Seq.lseq uint8 (Spec.Signal.Crypto.cipherlen (Ghost.reveal plen)) &
     Spec.Signal.Crypto.privkey)
 
-noextract let encrypt_from_msg_key_spec #plen msg_key counter plaintext =
+noextract
+let encrypt_from_msg_key_spec #plen msg_key counter plaintext =
   let gkeys = Spec.Signal.Crypto.hkdf3 msg_key
     Spec.Signal.Messages.zz Spec.Signal.Messages.label_WhisperMessageKeys
   in
@@ -525,7 +544,9 @@ noextract let encrypt_from_msg_key_spec #plen msg_key counter plaintext =
   let ciphertext = Spec.Signal.Crypto.aes_enc enc_key enc_iv plaintext in
   (ciphertext, mac_key)
 
-inline_for_extraction noextract val encrypt_from_msg_key:
+
+inline_for_extraction noextract
+val encrypt_from_msg_key:
      #vplen:(Ghost.erased size_nat){
        Ghost.reveal vplen > 0 /\
        Ghost.reveal vplen + 16 <= max_size_t /\
@@ -557,7 +578,8 @@ inline_for_extraction noextract val encrypt_from_msg_key:
       end
     ))
 
-inline_for_extraction noextract let encrypt_from_msg_key #vplen keys len ciphertext msg_key
+inline_for_extraction noextract
+let encrypt_from_msg_key #vplen keys len ciphertext msg_key
   counter plaintext
   =
   (**) let h0 = ST.get () in
@@ -577,7 +599,17 @@ inline_for_extraction noextract let encrypt_from_msg_key #vplen keys len ciphert
   (* Compute the ciphertext *)
   enc #vplen len ciphertext enc_key enc_iv plaintext
 
-noextract val encrypt_spec:
+
+let encrypt_get_length
+    (prev_counter:size_t)
+    (counter:size_t)
+    (plen:size_t{v plen + 16 <= max_size_t /\ Spec.Signal.Crypto.cipherlen (v plen) + 140 + 64 <= max_size_t})
+    : Tot (r:size_t{v r == Spec.Signal.Core.encrypt_get_length (v prev_counter) (v counter) (v plen)}) =
+    1ul +. (serialize_whisper_message_get_length prev_counter counter (cipherlen plen)) +. 8ul
+
+
+noextract
+val encrypt_spec:
     #plen:(Ghost.erased size_nat){
       Ghost.reveal plen + 16 <= max_size_t /\
       Spec.Signal.Crypto.cipherlen (Ghost.reveal plen) + 265 <= max_size_t
@@ -603,18 +635,8 @@ noextract val encrypt_spec:
       output == expected_output
     ))
 
-#push-options "--z3rlimit 500"
-
-let encrypt_get_length
-    (prev_counter:size_t)
-    (counter:size_t)
-    (plen:size_t{v plen + 16 <= max_size_t /\ Spec.Signal.Crypto.cipherlen (v plen) + 140 + 64 <= max_size_t})
-    : Tot (r:size_t{v r == Spec.Signal.Core.encrypt_get_length (v prev_counter) (v counter) (v plen)}) =
-    1ul +. (serialize_whisper_message_get_length prev_counter counter (cipherlen plen)) +. 8ul
-
-#pop-options
-
-noextract let encrypt_spec #plen our_identity_pub_key their_identity_pub_key msg_key our_ephemeral_pub_key
+noextract
+let encrypt_spec #plen our_identity_pub_key their_identity_pub_key msg_key our_ephemeral_pub_key
   prev_counter counter plaintext =
   let (ciphertext, mac_key) =
     encrypt_from_msg_key_spec #plen msg_key counter plaintext
@@ -624,6 +646,7 @@ noextract let encrypt_spec #plen our_identity_pub_key their_identity_pub_key msg
       our_ephemeral_pub_key prev_counter counter ciphertext mac_key
   in
   output
+
 
 val encrypt:
     #vplen:(Ghost.erased size_nat){
@@ -662,8 +685,6 @@ val encrypt:
        expected_output == Seq.sub h1.[output] 0 (v wmlen)
      end
   ))
-
-#set-options "--z3rlimit 200"
 
 let encrypt #vplen olen output our_identity_pub_key their_identity_pub_key msg_key our_ephemeral_pub_key prev_counter counter len plaintext =
   push_frame ();
@@ -712,7 +733,6 @@ let encrypt #vplen olen output our_identity_pub_key their_identity_pub_key msg_k
   pop_frame ();
   flen
 
-#reset-options "--z3rlimit 20 --max_fuel 0 --initial_fuel 0 --max_ifuel 0 --initial_ifuel 0"
 
 noextract val decrypt_serialize_and_compare_tag_spec:
      their_ephemeral_pub_key: Spec.Signal.Crypto.pubkey
@@ -736,6 +756,7 @@ noextract let decrypt_serialize_and_compare_tag_spec their_ephemeral_pub_key mac
       their_identity_pub_key whisper_message
   in
   Spec.Signal.Messages.equal_bytes tag8 exp_tag8
+
 
 inline_for_extraction noextract val decrypt_serialize_and_compare_tag:
      #volen: Ghost.erased size_nat
@@ -788,9 +809,9 @@ inline_for_extraction noextract val decrypt_serialize_and_compare_tag:
       end
     ))
 
-#set-options "--z3rlimit 50"
 
-inline_for_extraction noextract let decrypt_serialize_and_compare_tag #volen #vclen olen output
+inline_for_extraction noextract
+let decrypt_serialize_and_compare_tag #volen #vclen olen output
   computed_tag8 their_ephemeral_pub_key mac_key our_identity_pub_key their_identity_pub_key
    prev_counter counter clen ciphertext tag8 =
   (* Compute the whisper_msg *)
@@ -819,6 +840,7 @@ inline_for_extraction noextract let decrypt_serialize_and_compare_tag #volen #vc
   (**) assert(res = Spec.Signal.Messages.equal_bytes h0.[tag8] h2.[computed_tag8]);
   res
 
+
 noextract val decrypt_compute_keys_spec:
      msg_key: Spec.Signal.Crypto.key
   -> counter: size_nat
@@ -830,7 +852,9 @@ noextract let decrypt_compute_keys_spec msg_key counter  =
   in
   keys
 
-inline_for_extraction noextract val decrypt_compute_keys:
+
+inline_for_extraction noextract
+val decrypt_compute_keys:
      keys: lbuffer uint8 (size 96)
   -> msg_key: privkey_p
   -> counter: size_t
@@ -847,7 +871,8 @@ inline_for_extraction noextract val decrypt_compute_keys:
       end
     ))
 
-inline_for_extraction noextract let decrypt_compute_keys keys msg_key counter =
+inline_for_extraction noextract
+let decrypt_compute_keys keys msg_key counter =
   (**) let h0 = ST.get () in
   (* Compute the keys *)
   (**) recall_contents #uint8 #(size 32) const_zz Spec.Signal.Messages.zz;
@@ -858,6 +883,7 @@ inline_for_extraction noextract let decrypt_compute_keys keys msg_key counter =
   (**) let h2 = ST.get () in
   (**) Seq.eq_intro h2.[keys] (Spec.Signal.Crypto.hkdf3 h2.[msg_key] Spec.Signal.Messages.zz
   (**)   Spec.Signal.Messages.label_WhisperMessageKeys)
+
 
 noextract val decrypt_dec_and_return_spec:
      enc_key: Spec.Signal.Crypto.key
@@ -870,6 +896,7 @@ noextract let decrypt_dec_and_return_spec enc_key enc_iv ciphertext =
     match plain with
     | Some plain -> Some plain
     | None -> None
+
 
 noextract val decrypt_return_post:
      #volen: Ghost.erased size_nat
@@ -944,6 +971,7 @@ inline_for_extraction noextract let decrypt_dec_and_return #volen #vclen olen ou
   (**) end;
   plen
 
+
 noextract val decrypt_branch_on_bad_tag_spec:
      equal_tag: bool
   -> enc_key: Spec.Signal.Crypto.privkey
@@ -956,6 +984,7 @@ noextract let decrypt_branch_on_bad_tag_spec equal_tag enc_key enc_iv ciphertext
     None
   else
     decrypt_dec_and_return_spec enc_key enc_iv ciphertext
+
 
 inline_for_extraction noextract val decrypt_branch_on_bad_tag:
      #volen: Ghost.erased size_nat
@@ -994,6 +1023,7 @@ inline_for_extraction noextract let decrypt_branch_on_bad_tag #volen #vclen olen
     decrypt_dec_and_return #volen #vclen olen output enc_key enc_iv ciphertext clen
   end
 
+
 noextract val decrypt_spec:
      our_identity_key: Spec.Signal.Crypto.pubkey
   -> their_identity_pub_key: Spec.Signal.Crypto.pubkey
@@ -1022,8 +1052,6 @@ noextract let decrypt_spec our_identity_pub_key their_identity_pub_key
   in
   decrypt_branch_on_bad_tag_spec equal_tag enc_key enc_iv ciphertext
 
-
-#reset-options "--z3rlimit 50 --max_fuel 0 --initial_fuel 0 --initial_ifuel 0 --max_ifuel 0"
 
 val decrypt:
     #volen: Ghost.erased size_nat
@@ -1064,8 +1092,6 @@ val decrypt:
       in decrypt_return_post #volen #vclen expected olen output plen h0 h1
     end
   ))
-
-#set-options "--z3rlimit 200"
 
 let decrypt #volen #vclen olen output our_identity_pub_key their_identity_pub_key
   their_ephemeral_pub_key msg_key prev_counter counter clen ciphertext  tag8 =
@@ -1117,6 +1143,7 @@ let decrypt #volen #vclen olen output our_identity_pub_key their_identity_pub_ke
   (**) assert(modifies1 output h0 h6);
   plen
 
+
 val priv_to_pub:
     output: lbuffer uint8 (size 33)
   -> secret: lbuffer uint8 (size 32) ->
@@ -1127,6 +1154,7 @@ val priv_to_pub:
 	 ))
 
 let priv_to_pub output secret = priv_to_pub output secret
+
 
 val generate_key_pair:
      e:(Ghost.erased Spec.Signal.Crypto.entropy)

@@ -8,7 +8,8 @@ open Lib.Sequence
 
 open Spec.Signal.Crypto
 
-#reset-options "--initial_fuel 0 --max_fuel 0 --initial_ifuel 0 --max_ifuel 0 --z3rlimit 15"
+#reset-options "--z3rlimit 15 --fuel 0 --ifuel 0"
+
 
 /// Protocol Buffer Serialization
 
@@ -240,6 +241,7 @@ let serialize_whisper_message
   let x1 = serialize_varint counter (u8 2) in
   let x2 = serialize_varint prev_counter (u8 3) in
   let x3 = serialize_bytes ciphertext (u8 4) in
+  admit();
   x0 @< x1 @< x2 @< x3
 
 let size_mac_whisper_msg_extra_info : size_nat = 33 + 33 + 1
