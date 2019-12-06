@@ -15,7 +15,7 @@ include $(HACL_HOME)/Makefile.include
 
 FSTAR_INCLUDE_PATH= \
 	$(KREMLIN_HOME)/kremlib \
-	$(addprefix $(HACL_HOME)/,obj lib specs specs/lemmas specs/alternative specs/experimental code/hash code/hmac code/hkdf code/curve25519 code/ed25519 code/experimental/aes-256-cbc)
+	$(addprefix $(HACL_HOME)/,obj lib specs specs/lemmas specs/alternative specs/experimental code/hash code/hmac code/hkdf code/curve25519 code/ed25519 code/experimental/aes code/experimental/aes-256-cbc providers/evercrypt providers/evercrypt/fst vale/specs/hardware vale/specs/defs)
 
 # In interactive mode, chill out and don't roll over if
 # something isn't cached somewhere.
@@ -30,7 +30,7 @@ FSTAR_NO_FLAGS= \
 	$(OTHERFLAGS)
 
 FSTAR_FLAGS=$(FSTAR_NO_FLAGS) \
-	--already_cached '*,-MLS' \
+	--already_cached '*,-Impl.Signal,-Spec.Signal,-Test.Spec.Signal,-Test.Impl.Signal' \
 	--warn_error @241 \
 
 FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
@@ -49,7 +49,7 @@ ifndef NODEPEND
 ifndef MAKE_RESTARTS
 .depend: .FORCE
 	$(FSTAR) $(FSTAR_NO_FLAGS) --dep full $(notdir $(PROJECT_ROOTS)) \
-	    --extract '-* +MLS.Crypto.Func +MLS.Constants +MLS.Types +MLS.Helper +MLS.TreeKEM.Func +MLS.TreeKEM.DataStructure +MLS.Formatting +MLS.Core +MLS.API +MLS.Test' \
+	    --extract '-* +Impl.Signal.Crypto +Impl.Signal.Messages +Impl.Signal.Core +Test.Impl.Signal' \
 	    > $@
 
 .PHONY: .FORCE
