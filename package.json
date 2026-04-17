@@ -6,7 +6,7 @@
   "dependencies": {
     "long": "^3.1.0",
     "bytebuffer": "^3.5.5",
-    "protobufjs": "5.0.3"
+    "protobufjs": "7.5.5"
   },
   "devDependencies": {
     "blanket": "1.1.7",
